@@ -25,7 +25,7 @@ def least_square(f, psi, Omega, symbolic=True):
             for j in range(i,len(psi)):
                 integrand = psi[i] * psi[j]
                 integrand = sym.lambdify([x], integrand)
-                I = sym.mpmath.quad(integrand, [Omega[0], Omega[1]])
+                I = mpmath.quad(integrand, [Omega[0], Omega[1]])
                 A[i,j] = A[j,i] = I
         integrand = psi[i] * f
         integrand = sym.lambdify([x], integrand)
@@ -53,8 +53,40 @@ def comparison_plot(f, u, Omega):
     plt.legend(['approximation', 'exact'])
 
 
+def regression(f, psi, points):
+    N = len(psi)
+    m = len(points)
+    # Use numpy arrays and numerical computing
+    B = np.zeros((N, N))
+    d = np.zeros(N)
+    # Wrap psi and f in Python functions rather than expressions
+    # so that we can evaluate psi at points[i]
+    x = sym.Symbol('x')
+    psi_sym = psi # save symbolic expression
+    psi = [sym.lambdify([x], psi[i]) for i in range(N)]
+    f = sym.lambdify([x], f)
+    for i in range(N):
+        for j in range(N):
+            B[i,j] = 0
+            for k in range(m):
+                B[i,j] += psi[i](points[k])*psi[j](points[k])
+                d[i] = 0
+            for k in range(m):
+                d[i] += psi[i](points[k])*f(points[k])
+    c = np.linalg.solve(B, d)
+    u = sum(c[i]*psi_sym[i] for i in range(N))
+    return u,c
+
+
 if __name__ == '__main__':
     x = sym.Symbol('x')
     f = 10*(x-1)**2 - 1
-    u, c = least_square(f=f, psi=[1,x], Omega=[1,2])
-    print(u)
+    #u, c = least_square(f=f, psi=[1,x], Omega=[1,2])
+    psi = [1, x]
+    Omega = [1, 2]
+    m_values = [2-1, 8-1, 64-1]
+    # Create m+3 points and use the inner m+1 points
+    for m in m_values:
+        points = np.linspace(Omega[0], Omega[1], m+3)[1:-1]
+        u, c = regression(f, psi, points)
+        comparison_plot(f, u, Omega)
