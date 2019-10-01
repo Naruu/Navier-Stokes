@@ -1,5 +1,6 @@
 import sympy as sym
 import numpy as np
+import scipy
 from matplotlib import pyplot as plt
 # least_square error  calculation betwen f and sigma from i to N c_i psi_i. {psi_i} composes basis.
 # dot product is defined as integral.
@@ -11,7 +12,6 @@ def least_square(f, psi, Omega, symbolic=True):
     A = sym.zeros(N, N)
     b = sym.zeros(N, 1)
     x = sym.Symbol('x')
-    I = sym.integrate(0,(x, Omega[0], Omega[1]))
     if symbolic:
         for i in range(len(psi)):
             for j in range(i,len(psi)):
@@ -23,13 +23,9 @@ def least_square(f, psi, Omega, symbolic=True):
     if not symbolic or not isinstance(I, sym.Integral):
         for i in range(len(psi)):
             for j in range(i,len(psi)):
-                integrand = psi[i] * psi[j]
-                integrand = sym.lambdify([x], integrand)
-                I = mpmath.quad(integrand, [Omega[0], Omega[1]])
+                I = scipy.integrate.quad(psi[i] * psi[j], [Omega[0], Omega[1]])
                 A[i,j] = A[j,i] = I
-        integrand = psi[i] * f
-        integrand = sym.lambdify([x], integrand)
-        I = sym.mpmath.quad(integrand, [Omega[0], Omega[1]])
+        I = scipy.integrate.quad(psi[i] * f, [Omega[0], Omega[1]])
         b[i,0] = I
 
     # Get coefficients of approximated function by solving system of equations
@@ -76,6 +72,13 @@ def regression(f, psi, points):
     c = np.linalg.solve(B, d)
     u = sum(c[i]*psi_sym[i] for i in range(N))
     return u,c
+
+def Lagrange_polynomials(x, i, N):
+    p = 1
+    for k in range(len(points)):
+        if k != i:
+            p *= (x - points[k])/(points[i] - points[k])
+    return p
 
 
 if __name__ == '__main__':
