@@ -223,7 +223,7 @@ def mesh_uniform(N_e, d, Omega):
     cells = [[e, e+1] for e in range(N_e)]
     return vertices, cells, dof_map
 
-def u_glob(U, cells, vertices, dof_map, resolution_per_element=51):
+def u_glob(U, cells, vertices, dof_map, resolution_per_element=1):
     """
     Compute (x, y) coordinates of a curve y = u(x), where u is a
     finite element function: u(x) = sum_i of U_i*phi_i(x).

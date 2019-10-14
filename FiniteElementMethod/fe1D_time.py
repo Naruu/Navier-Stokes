@@ -1,3 +1,9 @@
+from fe1D_naive import GaussLegendre, basis, affine_mapping, mesh_uniform, u_glob
+import numpy as np
+import sympy as sym
+import matplotlib.pyplot as plt
+import time
+import sys
 def finite_element1D_time(
     vertices, cells, dof_map,
     dt,
@@ -24,6 +30,8 @@ def finite_element1D_time(
 
     A = np.zeros((N_n, N_n))
     b = np.zeros(N_n)
+    # Container to hold c
+    cs = []
 
     # Polynomial degree
     # Compute all element basis functions and their derivatives
@@ -49,6 +57,7 @@ def finite_element1D_time(
     """
 
     c_n = initc
+    cs.append(c_n)
 
     for e in range(N_e):
         Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
@@ -67,7 +76,7 @@ def finite_element1D_time(
                     A_e[r,s] += ilhs(e, phi, r, s, X, x, h)*dX
         if verbose:
             print("original")
-            print('A^(%d):\n' % e, A_e);  print('b^(%d):' % e, b_e)
+            print('A^(%d):\n' % e, A_e)
 
         # Assemble
         for r in range(n):
@@ -77,7 +86,7 @@ def finite_element1D_time(
         #boundary condidtion
         A[0,:] = 0
         A[:,0] = 0
-        A[0,0] = 1 * N_e
+        A[0,0] = 1
 
 
     for t in range(nt):
@@ -94,8 +103,9 @@ def finite_element1D_time(
 
               # Compute contribution to element matrix and vector
               for r in range(n):
-                  for s in range(n):
-                    b_e[r] += irhs(e, phi, c_n, r, s, X, x, h, dt)*dX
+                for s in range(n):
+                    cc = c_n[dof_map[e][s]]
+                    b_e[r] += irhs(e, phi, cc, r, s, X, x, h, dt)*dX
                     
             if verbose:
                 print("original")
@@ -109,26 +119,32 @@ def finite_element1D_time(
         b[0] = c_n[-1]
         modified = True
 
-    if verbose and modified:
-        print('after essential boundary conditions:')
-        print('A^(%d):\n' % e, A_e);  print('b^(%d):' % e, b_e)
-        
-    timing['assemble'] = time.clock() - t0
-    t1 = time.clock()
-    c = np.linalg.solve(A, b)
-    c_n = c
-    timing['solve'] = time.clock() - t1
-    if verbose:
-        print('Global A:\n', A); print('Global b:\n', b)
-        print('Solution c:\n', c)
-    return c, A, b, timing
+        if verbose and modified:
+            print('after essential boundary conditions:')
+            print('b^(%d):' % e, b_e)
+            
+        timing['assemble'] = time.clock() - t0
+        t1 = time.clock()
+        c = np.linalg.solve(A, b)
+        cs.append(c)
+        c_n = c
+        timing['solve'] = time.clock() - t1
+        if verbose:
+            print('Global A:\n', A); print('Global b:\n', b)
+            print('Solution c:\n', c)
+    return cs, A, b, timing
 
 def ilhs(e, phi, r, s, X, x, h):
-  return phi[1][r](X, h)*phi[1][s](X, h)
+  return phi[0][r](X)*phi[0][s](X)
 
-def irhs(e, phi, c_n, r, s, X, x, h, dt):
-  print(phi[0][r](X,h))
-  return c_n[r]*phi[0][r](X, h)*phi[0][s](X, h) + c_n[r]*dt*phi[1][r](X, h)*phi[0][s](X, h)
+def irhs(e, phi, c, r, s, X, x, h, dt):
+  return c*phi[0][r](X)*phi[0][s](X) - c*dt*phi[1][s](X, h)*phi[0][r](X)
+
+
+def blhs(e, phi, r, s, X, x, h):
+  return 0
+def brhs(e, phi, r, X, x, h):
+  return 0
 
 """
 HOW TO
@@ -136,34 +152,34 @@ HOW TO
 Define ilhs, rhs, blhs, brhs as following
 blhs, brhs implies the boundary condition on first derviatives
 essbc implies the boundary condition on u
+"""
 
-C = 5; D = 2; L = 2
-d = 1
-dt = 1; nt = 10
-
+C = 5; D = 2; L = 1
+d = 1; N_e = 10; dx = L/N_e
+dt = 0.05; nt = int(1/dt)
+ 
 
 vertices, cells, dof_map = mesh_uniform(
-N_e=10, d=d, Omega=[0,L])
+N_e=N_e, d=d, Omega=[0,L])
 
 c0 = [0] * len(vertices)
-c0[4] = c0[5] = c0[6] = 1
+i4 = int(0.4/dx)
+i6 = int(0.6/dx)
+c0[i4:i6+2] = [1] * (i6 - i4+2)
 
 essbc = {}
-essbc[0] = c0[-1]
+#essbc[0] = c0[-1]
 
-c, A, b, timing = finite_element1D_time(
+ 
+cs, A, b, timing = finite_element1D_time(
     vertices, cells, dof_map, dt, nt, essbc,
-    ilhs=ilhs, irhs=irhs, initc=c0, blhs=blhs, brhs=brhs)
-print(A)
-print(b)
-print(c)
-"""
+    ilhs=ilhs, irhs=irhs, initc=c0, blhs=blhs, brhs=brhs, verbose = False)
 
 """
 For plotting
 
 import matplotlib.pyplot as plt
-x,u, nodes = u_glob(c, cells, vertices, dof_map)
+x,u, nodes =  u_glob(c, cells, vertices, dof_map)
 plt.plot(x, u)
 
 exaxt solution
@@ -171,4 +187,15 @@ change u_exact as the model
 u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
 u_e = u_exact(nodes)
 plt.plot(np.linspace(0,1,len(u_e)), u_e)
+
+
+for cc in range(len(cs)):
+    if cc%4 == 0:
+        plt.figure()
+        x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
+        plt.plot(x, u)
+        plt.xticks(x)
+        plt.yticks(u)
+        plt.show()
 """
+
