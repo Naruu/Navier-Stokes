@@ -90,6 +90,7 @@ def finite_element1D_time(
 
 
     for t in range(nt):
+        b = np.zeros(N_n)
         for e in range(N_e):
             Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
             
@@ -154,26 +155,38 @@ blhs, brhs implies the boundary condition on first derviatives
 essbc implies the boundary condition on u
 """
 
-C = 5; D = 2; L = 1
-d = 1; N_e = 10; dx = L/N_e
-dt = 0.05; nt = int(1/dt)
+L = 10; d = 1
+N_e = 40; dx = L/N_e
+dt = 0.005; nt = 100
  
 
 vertices, cells, dof_map = mesh_uniform(
 N_e=N_e, d=d, Omega=[0,L])
 
 c0 = [0] * len(vertices)
-i4 = int(0.4/dx)
-i6 = int(0.6/dx)
+i4 = int(0.4*L/dx)
+i6 = int(0.6*L/dx)
 c0[i4:i6+2] = [1] * (i6 - i4+2)
 
 essbc = {}
 #essbc[0] = c0[-1]
-
  
 cs, A, b, timing = finite_element1D_time(
     vertices, cells, dof_map, dt, nt, essbc,
     ilhs=ilhs, irhs=irhs, initc=c0, blhs=blhs, brhs=brhs, verbose = False)
+
+#Plot
+xtp = [L/10*x for x in range(11)]
+xlabel = [str(L/10*x) for x in range(11)]
+
+for cc in range(0,len(cs),20):
+    plt.figure()
+    x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
+    plt.plot(x, u)
+    plt.xlim(0,L)
+    plt.xticks(xtp,xlabel)
+    #plt.yticks(u)
+    plt.show()
 
 """
 For plotting
@@ -189,13 +202,15 @@ u_e = u_exact(nodes)
 plt.plot(np.linspace(0,1,len(u_e)), u_e)
 
 
-for cc in range(len(cs)):
-    if cc%4 == 0:
-        plt.figure()
-        x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
-        plt.plot(x, u)
-        plt.xticks(x)
-        plt.yticks(u)
-        plt.show()
-"""
+xtp = [L/10*x for x in range(11)]
+xlabel = [str(L/10*x) for x in range(11)]
 
+for cc in range(0,len(cs),20):
+    plt.figure()
+    x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
+    plt.plot(x, u)
+    plt.xlim(0,L)
+    plt.xticks(xtp,xlabel)
+    #plt.yticks(u)
+    plt.show()
+"""
