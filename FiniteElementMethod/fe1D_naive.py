@@ -3,6 +3,7 @@ import sympy as sym
 import sys
 import time
 
+from numint import GaussLegendre
 
 def finite_element1D_naive(
     vertices, cells, dof_map,     # mesh
@@ -156,49 +157,6 @@ def basis(d, symbolic=False):
     phi_num[1] = [sym.lambdify([X, h], phi_sym[1][r])
                   for r in range(d+1)]
     return phi_sym if symbolic else phi_num
-
-
-def GaussLegendre(num_points):
-    """
-    Return points and weights for Gauss-Legendre rules on [-1,1].
-    The no of points implemented are 1-20, 32, 64, 96, 100, 128, 256,
-    512, 1024.
-    """
-    x = {}
-    w = {}
-    x[2] = [0.5773502691896257645091488]
-    w[2] = [1.0000000000000000000000000]
-
-    x[4] = [0.3399810435848562648026658,0.8611363115940525752239465]
-    w[4] = [0.6521451548625461426269361,0.3478548451374538573730639]
-    
-    n = num_points
-    points  = np.zeros(n)
-    weights = np.zeros(n)
-
-    if n > 1:
-        try:
-            x[n]  # x is defined below (global variable)
-        except KeyError:
-            raise ValueError(
-                'Gauss-Legendre rule with %d points not available' % n)
-
-    if n == 1:
-        points[0] = 0
-        weights[0] = 2
-    elif n % 2 == 0:
-        for i in range(len(x[n])):
-            points[n//2+i] = x[n][i]
-            points[n//2-1-i] = -x[n][i]
-            weights[n//2+i] = w[n][i]
-            weights[n//2-1-i] = w[n][i]
-    else:
-        for i in range(len(x[n])):
-            points[n//2+i] = x[n][i]
-            points[n//2-i] = -x[n][i]
-            weights[n//2+i] = w[n][i]
-            weights[n//2-i] = w[n][i]
-    return points, weights
 
 def mesh_uniform(N_e, d, Omega):
     """

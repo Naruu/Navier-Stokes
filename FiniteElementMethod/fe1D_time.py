@@ -1,9 +1,12 @@
-from fe1D_naive import GaussLegendre, basis, affine_mapping, mesh_uniform, u_glob
 import numpy as np
 import sympy as sym
-import matplotlib.pyplot as plt
 import time
 import sys
+from tqdm import tqdm
+
+from fe1D_naive import basis, affine_mapping, u_glob
+from numint import GaussLegendre
+
 def finite_element1D_time(
     vertices, cells, dof_map,
     dt,
@@ -19,7 +22,7 @@ def finite_element1D_time(
     ):
 
     """
-    1. compute A # compute on omega e only once
+    1. compute A # compute on omega e only once. A does not change.
     2. for i=0, ...tn, # compute on omerga e and repeat for tn times
         1)compute b
         2)solve Ac = b
@@ -70,7 +73,7 @@ def finite_element1D_time(
             dX = detJ*w
             x = affine_mapping(X, Omega_e)
 
-            # Compute contribution to element matrix and vector
+            # Compute A_i,j(element matrix)
             for r in range(n):
                 for s in range(n):
                     A_e[r,s] += ilhs(e, phi, r, s, X, x, h)*dX
@@ -78,18 +81,17 @@ def finite_element1D_time(
             print("original")
             print('A^(%d):\n' % e, A_e)
 
+
         # Assemble
         for r in range(n):
             for s in range(n):
                 A[dof_map[e][r], dof_map[e][s]] += A_e[r,s]
-        
-        #boundary condidtion
+        #boundary condition
         A[0,:] = 0
-        A[:,0] = 0
         A[0,0] = 1
+        
 
-
-    for t in range(nt):
+    for t in tqdm(range(nt)):
         b = np.zeros(N_n)
         for e in range(N_e):
             Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
@@ -102,7 +104,7 @@ def finite_element1D_time(
               dX = detJ*w
               x = affine_mapping(X, Omega_e)
 
-              # Compute contribution to element matrix and vector
+              # Compute b_i(element vector)
               for r in range(n):
                 for s in range(n):
                     cc = c_n[dof_map[e][s]]
@@ -116,7 +118,7 @@ def finite_element1D_time(
             for r in range(n):
                 b[dof_map[e][r]] += b_e[r]
 
-    # Incorporate essential boundary conditions
+    # boundary condition
         b[0] = c_n[-1]
         modified = True
 
@@ -134,83 +136,3 @@ def finite_element1D_time(
             print('Global A:\n', A); print('Global b:\n', b)
             print('Solution c:\n', c)
     return cs, A, b, timing
-
-def ilhs(e, phi, r, s, X, x, h):
-  return phi[0][r](X)*phi[0][s](X)
-
-def irhs(e, phi, c, r, s, X, x, h, dt):
-  return c*phi[0][r](X)*phi[0][s](X) - c*dt*phi[1][s](X, h)*phi[0][r](X)
-
-
-def blhs(e, phi, r, s, X, x, h):
-  return 0
-def brhs(e, phi, r, X, x, h):
-  return 0
-
-"""
-HOW TO
-
-Define ilhs, rhs, blhs, brhs as following
-blhs, brhs implies the boundary condition on first derviatives
-essbc implies the boundary condition on u
-"""
-
-L = 10; d = 1
-N_e = 40; dx = L/N_e
-dt = 0.005; nt = 100
- 
-
-vertices, cells, dof_map = mesh_uniform(
-N_e=N_e, d=d, Omega=[0,L])
-
-c0 = [0] * len(vertices)
-i4 = int(0.4*L/dx)
-i6 = int(0.6*L/dx)
-c0[i4:i6+2] = [1] * (i6 - i4+2)
-
-essbc = {}
-#essbc[0] = c0[-1]
- 
-cs, A, b, timing = finite_element1D_time(
-    vertices, cells, dof_map, dt, nt, essbc,
-    ilhs=ilhs, irhs=irhs, initc=c0, blhs=blhs, brhs=brhs, verbose = False)
-
-#Plot
-xtp = [L/10*x for x in range(11)]
-xlabel = [str(L/10*x) for x in range(11)]
-
-for cc in range(0,len(cs),20):
-    plt.figure()
-    x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
-    plt.plot(x, u)
-    plt.xlim(0,L)
-    plt.xticks(xtp,xlabel)
-    #plt.yticks(u)
-    plt.show()
-
-"""
-For plotting
-
-import matplotlib.pyplot as plt
-x,u, nodes =  u_glob(c, cells, vertices, dof_map)
-plt.plot(x, u)
-
-exaxt solution
-change u_exact as the model
-u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
-u_e = u_exact(nodes)
-plt.plot(np.linspace(0,1,len(u_e)), u_e)
-
-
-xtp = [L/10*x for x in range(11)]
-xlabel = [str(L/10*x) for x in range(11)]
-
-for cc in range(0,len(cs),20):
-    plt.figure()
-    x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
-    plt.plot(x, u)
-    plt.xlim(0,L)
-    plt.xticks(xtp,xlabel)
-    #plt.yticks(u)
-    plt.show()
-"""
