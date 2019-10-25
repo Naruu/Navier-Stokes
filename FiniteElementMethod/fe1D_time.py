@@ -3,6 +3,9 @@ import sympy as sym
 import time
 import sys
 from tqdm import tqdm
+import scipy.sparse.dok_matrix
+import scipy.sparse.linalg
+
 
 from fe1D_naive import basis, affine_mapping, u_glob
 from numint import GaussLegendre
@@ -31,7 +34,7 @@ def finite_element1D_time(
     N_e = len(cells)
     N_n = np.array(dof_map).max() + 1
 
-    A = np.zeros((N_n, N_n))
+    A = scipy.sparse.dok_matrix((N_n, N_n))
     b = np.zeros(N_n)
     # Container to hold c
     cs = []
@@ -128,7 +131,7 @@ def finite_element1D_time(
             
         timing['assemble'] = time.clock() - t0
         t1 = time.clock()
-        c = np.linalg.solve(A, b)
+        c = scipy.sparse.linalg.spsolve(A.tocsr(), b, use_umfpack=True)
         cs.append(c)
         c_n = c
         timing['solve'] = time.clock() - t1
