@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from fe1D_naive import mesh_uniform
+from fe1D_naive import mesh_uniform,u_glob
 from fe1D_time import finite_element1D_time
 """
 HOW TO
@@ -22,9 +22,9 @@ def blhs(e, phi, r, s, X, x, h):
 def brhs(e, phi, r, X, x, h):
   return 0
 
-L = 1; d = 2
+L = 1; d = 4
 N_e = 50; dx = L/N_e
-dt = 0.0001; nt = 10000
+dt = 0.00001; nt = 10000
  
 
 vertices, cells, dof_map = mesh_uniform(
