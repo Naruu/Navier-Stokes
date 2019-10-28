@@ -4,6 +4,7 @@ import sys
 import time
 
 from numint import GaussLegendre
+from scipy.sparse import dok_matrix, linalg
 
 def finite_element1D_naive(
     vertices, cells, dof_map,     # mesh
@@ -20,9 +21,6 @@ def finite_element1D_naive(
 
     A = np.zeros((N_n, N_n))
     b = np.zeros(N_n)
-
-    timing = {}
-    t0 = time.clock()
 
     for e in range(N_e):
         Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
@@ -92,14 +90,12 @@ def finite_element1D_naive(
                 A[dof_map[e][r], dof_map[e][s]] += A_e[r,s]
             b[dof_map[e][r]] += b_e[r]
 
-    timing['assemble'] = time.clock() - t0
-    t1 = time.clock()
+
     c = np.linalg.solve(A, b)
-    timing['solve'] = time.clock() - t1
     if verbose:
         print('Global A:\n', A); print('Global b:\n', b)
         print('Solution c:\n', c)
-    return c, A, b, timing
+    return c, A, b
 
 
 
@@ -121,8 +117,6 @@ def Lagrange_polynomial(x, i, points):
         if k != i:
             p *= (x - points[k])/(points[i] - points[k])
     return p
-
-    return nodes
 
 def basis(d, symbolic=False):
     """
@@ -181,7 +175,7 @@ def mesh_uniform(N_e, d, Omega):
     cells = [[e, e+1] for e in range(N_e)]
     return vertices, cells, dof_map
 
-def u_glob(U, cells, vertices, dof_map, resolution_per_element=1):
+def u_glob(U, cells, vertices, dof_map, resolution_per_element=51):
     """
     Compute (x, y) coordinates of a curve y = u(x), where u is a
     finite element function: u(x) = sum_i of U_i*phi_i(x).
@@ -223,8 +217,8 @@ HOW TO
 Define ilhs, rhs, blhs, brhs as following
 blhs, brhs implies the boundary condition on first derviatives
 essbc implies the boundary condition on u
-
-C = 5; D = 2; L = 2
+"""
+C = 5; D = 2; L = 4
 d = 1
 
 def ilhs(e, phi, r, s, X, x, h):
@@ -238,29 +232,29 @@ def brhs(e, phi, r, X, x, h):
 
 
 vertices, cells, dof_map = mesh_uniform(
-N_e=10, d=d, Omega=[0,L])
+N_e=2, d=d, Omega=[0,L])
 
 
 essbc = {}
 essbc[dof_map[-1][-1]] = D
-c, A, b, timing = finite_element1D_naive(
+c, A, b = finite_element1D_naive(
     vertices, cells, dof_map, essbc,
     ilhs=ilhs, irhs=irhs, blhs=blhs, brhs=brhs)
 print(A)
 print(b)
 print(c)
-"""
+
 
 """
 For plotting
+"""
 
 import matplotlib.pyplot as plt
 x,u, nodes = u_glob(c, cells, vertices, dof_map)
 plt.plot(x, u)
 
-exaxt solution
-change u_exact as the model
+#exaxt solution
+#change u_exact as the model
 u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
-u_e = u_exact(nodes)
-plt.plot(np.linspace(0,1,len(u_e)), u_e)
-"""
+u_e = u_exact(x)
+plt.plot(x, u_e)

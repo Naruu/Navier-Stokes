@@ -2,13 +2,18 @@ import numpy as np
 import sympy as sym
 import time
 import sys
+from scipy.sparse import dok_matrix, linalg
 from tqdm import tqdm
-import scipy.sparse.dok_matrix
-import scipy.sparse.linalg
-
 
 from fe1D_naive import basis, affine_mapping, u_glob
 from numint import GaussLegendre
+
+def init_c(A, N_n, c0):
+    c_n = np.zeros(N_n)
+    for r in range(N_n):
+        for s in range(N_n):
+            c_n[r] += A[r,s]*c0[s]
+    return c_n
 
 def finite_element1D_time(
     vertices, cells, dof_map,
@@ -17,7 +22,7 @@ def finite_element1D_time(
     essbc,                        # essbc[globdof]=value
     ilhs,
     irhs,
-    initc = [0],
+    c0 = [0],
     blhs=lambda e, phi, r, s, X, x, h: 0,
     brhs=lambda e, phi, r, X, x, h: 0,
     intrule='GaussLegendre',
@@ -34,11 +39,13 @@ def finite_element1D_time(
     N_e = len(cells)
     N_n = np.array(dof_map).max() + 1
 
-    A = scipy.sparse.dok_matrix((N_n, N_n))
+    #A = np.zeros((N_n, N_n))
+    A = dok_matrix((N_n, N_n))
     b = np.zeros(N_n)
     # Container to hold c
     cs = []
-
+    ct = [nt//5*(i+1) for i in range(5)]
+    
     # Polynomial degree
     # Compute all element basis functions and their derivatives
     
@@ -50,7 +57,7 @@ def finite_element1D_time(
     # Integrate over the reference cell
     points, weights = GaussLegendre(d+1)
     timing = {}
-    t0 = time.clock()
+
     
     """
     # initial value of c
@@ -62,8 +69,6 @@ def finite_element1D_time(
         c_n.append(initf(x))
     """
 
-    c_n = initc
-    cs.append(c_n)
 
     for e in range(N_e):
         Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
@@ -80,9 +85,11 @@ def finite_element1D_time(
             for r in range(n):
                 for s in range(n):
                     A_e[r,s] += ilhs(e, phi, r, s, X, x, h)*dX
+        """
         if verbose:
             print("original")
             print('A^(%d):\n' % e, A_e)
+        """
 
 
         # Assemble
@@ -92,12 +99,17 @@ def finite_element1D_time(
         #boundary condition
         A[0,:] = 0
         A[0,0] = 1
-        
+
+    #print("c0: ",c0)
+    c_n = init_c(A, N_n, c0)
+    #print("c_n",c_n)
+    cs.append(c_n)
+
 
     for t in tqdm(range(nt)):
         b = np.zeros(N_n)
         for e in range(N_e):
-            Omega_e = [vertices[cells[e][0]], vertices[cells[e][1]]]
+            Omega_e = [vertices[cells[e][0]], vertices[cells[e][-1]]]
             
             # Element vector
             b_e = np.zeros(n)
@@ -112,10 +124,11 @@ def finite_element1D_time(
                 for s in range(n):
                     cc = c_n[dof_map[e][s]]
                     b_e[r] += irhs(e, phi, cc, r, s, X, x, h, dt)*dX
-                    
+            """         
             if verbose:
                 print("original")
                 print('b^(%d):' % e, b_e)
+            """
 
             # Assemble
             for r in range(n):
@@ -123,19 +136,31 @@ def finite_element1D_time(
 
     # boundary condition
         b[0] = c_n[-1]
-        modified = True
+        #modified = True
 
+        """
         if verbose and modified:
             print('after essential boundary conditions:')
             print('b^(%d):' % e, b_e)
-            
+         
         timing['assemble'] = time.clock() - t0
         t1 = time.clock()
-        c = scipy.sparse.linalg.spsolve(A.tocsr(), b, use_umfpack=True)
-        cs.append(c)
+        """
+        #c = np.linalg.solve(A, b)
+        c = linalg.spsolve(A.tocsr(), b, use_umfpack=True)
+        if t in ct:
+            cs.append(c)
         c_n = c
-        timing['solve'] = time.clock() - t1
+        
+        """
+        print()
+        print(A)
+        print(b)
+        print(c_n)
+        """
+        """
         if verbose:
             print('Global A:\n', A); print('Global b:\n', b)
             print('Solution c:\n', c)
+        """
     return cs, A, b, timing

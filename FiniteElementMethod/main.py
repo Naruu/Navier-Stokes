@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+import fe1D_time
+from imp import reload
+reload(fe1D_time)
 from fe1D_naive import mesh_uniform,u_glob
 from fe1D_time import finite_element1D_time
+
 """
 HOW TO
 
@@ -10,6 +14,10 @@ Define ilhs, rhs, blhs, brhs as following
 blhs, brhs implies the boundary condition on first derviatives
 essbc implies the boundary condition on u
 """
+
+
+plt.clf()
+plt.close('all')
 
 def ilhs(e, phi, r, s, X, x, h):
   return phi[0][r](X)*phi[0][s](X)
@@ -21,10 +29,9 @@ def blhs(e, phi, r, s, X, x, h):
   return 0
 def brhs(e, phi, r, X, x, h):
   return 0
-
-L = 1; d = 4
-N_e = 50; dx = L/N_e
-dt = 0.00001; nt = 10000
+L = 1; d = 2
+N_e = 20; dx = L/N_e
+nt = 5000; dt = 1/nt 
  
 
 vertices, cells, dof_map = mesh_uniform(
@@ -42,39 +49,19 @@ essbc = {}
  
 cs, A, b, timing = finite_element1D_time(
     vertices, cells, dof_map, dt, nt, essbc,
-    ilhs=ilhs, irhs=irhs, initc=c0, blhs=blhs, brhs=brhs, verbose = False)
+    ilhs=ilhs, irhs=irhs, c0=c0, blhs=blhs, brhs=brhs, verbose = False)
 
 #Plot
+print("order of Legendre Polynomial: {}".format(d))
+print("N_e: {}, dx: {}, dt: {}".format(N_e, dx, dt))
 xtp = [L/6*x for x in range(7)]
 xlabel = ["{:.1}".format(L/6*x) for x in range(7)]
 
-for cc in range(5):
-    plt.figure()
-    x,u, n_ = u_glob(cs[nt//5 *cc], cells, vertices, dof_map)
-    plt.plot(x, u)
-    plt.xlim(0,L)
-    plt.xticks(xtp,xlabel)
-    #plt.yticks(u)
-    plt.show()
-
-"""
-For plotting
-
-import matplotlib.pyplot as plt
-x,u, nodes =  u_glob(c, cells, vertices, dof_map)
-plt.plot(x, u)
-
-exaxt solution
-change u_exact as the model
-u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
-u_e = u_exact(nodes)
-plt.plot(np.linspace(0,1,len(u_e)), u_e)
-
-
-xtp = [L/10*x for x in range(11)]
-xlabel = [str(L/10*x) for x in range(11)]
-
-for cc in range(0,len(cs),20):
+#from imp import reload
+#import fe1D_naive
+#reload(fe1D_naive)
+#from fe1D_naive import u_glob
+for cc in range(len(cs)):
     plt.figure()
     x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
     plt.plot(x, u)
@@ -82,4 +69,3 @@ for cc in range(0,len(cs),20):
     plt.xticks(xtp,xlabel)
     #plt.yticks(u)
     plt.show()
-"""
