@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import fe1D_time
+import fe1D_time, fe1D_naive
 from imp import reload
 reload(fe1D_time)
+reload(fe1D_naive)
 from fe1D_naive import mesh_uniform,u_glob
 from fe1D_time import finite_element1D_time
 
@@ -22,16 +23,20 @@ plt.close('all')
 def ilhs(e, phi, r, s, X, x, h):
   return phi[0][r](X)*phi[0][s](X)
 
-def irhs(e, phi, c, r, s, X, x, h, dt):
-  return c*phi[0][r](X)*phi[0][s](X) - dt*c*phi[1][s](X, h)*phi[0][r](X)
+def irhs1(e, phi, r, s, X, x, h):
+  return phi[0][s](X)*phi[0][r](X)
+
+def irhs2(e, phi, r, s, X, x, h):
+  return phi[0][r](X)* phi[1][s](X, h)
 
 def blhs(e, phi, r, s, X, x, h):
   return 0
 def brhs(e, phi, r, X, x, h):
   return 0
-L = 1; d = 2
-N_e = 20; dx = L/N_e
-nt = 5000; dt = 1/nt 
+  
+L = 1; d = 1
+N_e = 40; dx = L/N_e
+nt = 5; dt = 0.001
  
 
 vertices, cells, dof_map = mesh_uniform(
@@ -41,15 +46,15 @@ N_n = (np.array(dof_map).max() + 1)
 
 c0 = [0] * N_n 
 i4 = int(0.4 * N_n)
-i6 = int(0.6 * N_n )
-c0[i4:i6+2] = [1] * (i6 - i4+2)
+i6 = int(0.6 * N_n)
+c0[i4:i6+1] = [1] * (i6 - i4+1)
 
 essbc = {}
 #essbc[0] = c0[-1]
  
-cs, A, b, timing = finite_element1D_time(
+cs, A, b = finite_element1D_time(
     vertices, cells, dof_map, dt, nt, essbc,
-    ilhs=ilhs, irhs=irhs, c0=c0, blhs=blhs, brhs=brhs, verbose = False)
+    ilhs=ilhs, irhs1=irhs1, irhs2=irhs2, c0=c0, blhs=blhs, brhs=brhs, verbose = False)
 
 #Plot
 print("order of Legendre Polynomial: {}".format(d))
@@ -61,8 +66,8 @@ xlabel = ["{:.1}".format(L/6*x) for x in range(7)]
 #import fe1D_naive
 #reload(fe1D_naive)
 #from fe1D_naive import u_glob
+plt.figure()
 for cc in range(len(cs)):
-    plt.figure()
     x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
     plt.plot(x, u)
     plt.xlim(0,L)

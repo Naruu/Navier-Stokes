@@ -152,6 +152,10 @@ def basis(d, symbolic=False):
                   for r in range(d+1)]
     return phi_sym if symbolic else phi_num
 
+
+def Chebyshev_nodes(a, b, N):
+    return [(0.5*(a+b) + 0.5*(b-a)*cos(float(2*i+1)/(2*N+1))*pi) for i in range(N+1)]
+
 def mesh_uniform(N_e, d, Omega):
     """
     Create 1D finite element mesh on Omega with N_e elements
@@ -175,7 +179,7 @@ def mesh_uniform(N_e, d, Omega):
     cells = [[e, e+1] for e in range(N_e)]
     return vertices, cells, dof_map
 
-def u_glob(U, cells, vertices, dof_map, resolution_per_element=51):
+def u_glob(U, cells, vertices, dof_map, resolution_per_element=5):
     """
     Compute (x, y) coordinates of a curve y = u(x), where u is a
     finite element function: u(x) = sum_i of U_i*phi_i(x).
@@ -240,10 +244,6 @@ essbc[dof_map[-1][-1]] = D
 c, A, b = finite_element1D_naive(
     vertices, cells, dof_map, essbc,
     ilhs=ilhs, irhs=irhs, blhs=blhs, brhs=brhs)
-print(A)
-print(b)
-print(c)
-
 
 """
 For plotting
