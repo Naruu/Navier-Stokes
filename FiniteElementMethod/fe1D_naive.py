@@ -98,7 +98,6 @@ def finite_element1D_naive(
     return c, A, b
 
 
-
 def affine_mapping(X, Omega_e):
     x_L, x_R = Omega_e
     return 0.5*(x_L + x_R) + 0.5*(x_R - x_L)*X
@@ -233,6 +232,7 @@ def blhs(e, phi, r, s, X, x, h):
   return 0
 def brhs(e, phi, r, X, x, h):
   return -C*phi[0][r](-1) if e == 0 else 0
+
 
 
 vertices, cells, dof_map = mesh_uniform(

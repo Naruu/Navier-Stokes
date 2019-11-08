@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import fe1D_time, fe1D_naive
+import fe1D_time_rk, fe1D_naive
 from imp import reload
-reload(fe1D_time)
+reload(fe1D_time_rk)
 reload(fe1D_naive)
 from fe1D_naive import mesh_uniform,u_glob
-from fe1D_time import finite_element1D_time
+from fe1D_time_rk import finite_element1D_time
 
 """
 HOW TO
@@ -16,10 +16,10 @@ blhs, brhs implies the boundary condition on first derviatives
 essbc implies the boundary condition on u
 """
 
-
 plt.clf()
 plt.close('all')
 
+# left hand side : matix A_ij
 def ilhs(e, phi, r, s, X, x, h):
   return phi[0][r](X)*phi[0][s](X)
 
@@ -35,8 +35,8 @@ def brhs(e, phi, r, X, x, h):
   return 0
   
 L = 1; d = 1
-N_e = 40; dx = L/N_e
-nt = 5; dt = 0.001
+N_e = 20; dx = L/N_e
+nt = 1; dt = 0.001
  
 
 vertices, cells, dof_map = mesh_uniform(

@@ -1,9 +1,13 @@
-- numint.py -> GaussLegendre polynomial for basis function
-- fe1D_naive.py -> Galerkin method를 사용하기 위한 보조 함수와 time variable이 없는 경우의 Galerkin method
-- fe1D_time.py -> time variable이 있는 경우의 Galerkin method
-- main.py -> Galerkin Method에 들어갈 상수와 방정식을 세팅하고 실행하는 fe1D_time.py의 함수를 호출하는 파일
+numint.py : GaussLegendre method for integration
+fe1D_naive.py : sub functions for FEM
+fe1D_time.py : time descretization with Euler method
+fe1D_time_rk.py : time descretization with Runge-Kutta method
 
-* Note
-dx가 작은 경우 CFL condition에 의해 dt의 값도 매우매우 작아야합니다.
-단, dt가 작아지는 경우, 같은 시간 시뮬레이션을 하기 위해서는 nt가 증가하며
-전체 수행 시간이 길어질 수 있습니다.
+기존에 있던 main.py를 fe1D_time.py, fe1D_time_rk.py에도 넣어두어서
+fe1D_time.py, fe1D_time_rk.py만 각각 실행시키시면 됩니다.
+
+* 참고 자료
+fe1D_time.py :https://hplgit.github.io/fem-book/doc/pub/book/pdf/fem-book-4screen.pdf
+fe1D_time_rk.py : http://fab.cba.mit.edu/classes/864.14/text/fea.pdf
+
+두 파일은 문제 접근 방식이 조금 다릅니다.
