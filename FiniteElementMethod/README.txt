@@ -1,7 +1,7 @@
 numint.py : GaussLegendre method for integration
 fe1D_naive.py : sub functions for FEM
-fe1D_time.py : time descretization with Euler method
-fe1D_time_rk.py : time descretization with Runge-Kutta method
+fe1D_time.py : time discretization with Euler method
+fe1D_time_rk.py : time discretization with Runge-Kutta method
 
 기존에 있던 main.py를 fe1D_time.py, fe1D_time_rk.py에도 넣어두어서
 fe1D_time.py, fe1D_time_rk.py만 각각 실행시키시면 됩니다.

@@ -45,7 +45,7 @@ def finite_element1D_time(
     2. for i=0, ...tn, # compute on omerga e and repeat for tn times
         1)compute b
         2)solve Ac = b
-    Use Euler method for time descretization
+    Use Euler method for time discretization
     """
     # Numner of elements
     N_e = len(cells)
