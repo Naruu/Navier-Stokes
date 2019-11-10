@@ -2,7 +2,7 @@ import time
 from math import floor, sqrt
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import loadmat
+from scipy.io import loadmat, savemat
 from scipy.signal import medfilt2d
 
 # Estimates T1 together with:
@@ -206,6 +206,45 @@ def rdNlsPr_v2(data, nlsS):
     T1Est = T1EstTmp[ind]
     return (T1Est, bEst, aEst, res)
 
+def plotData_v2(data, time, datafit, T1):
+    fig123 = plt.figure(123) 
+    plt.imshow(np.squeeze(data[:, :, 1]), cmap='gray', vmin = np.min(data[:, :, 1]), vmax = np.max(data[:, :, 1]))
+    #movegui(fig123, 'northwest')
+    button = 1
+    
+    while button == 1:
+        fig, axs = plt.subplots()
+
+        xx = 100
+        yy = 150
+        #xx, yy, button = ginput(1);
+        yy = floor(yy)
+        xx = floor(xx)
+        
+        """
+        if (nargin == 2)
+            plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+'); 
+        end
+        if (nargin >= 3)
+            plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+', linspace(min(time),max(time),20), squeeze(datafit(floor(yy),floor(xx),:)), 'r');
+        end
+        if (nargin == 4)
+            # Location is given from top left corner
+            title(sprintf('Location X = %d, Y = %d, T1 = %g ms', cast(floor(yy),'int16'), cast(floor(xx),'int16'), T1(yy,xx)));
+        end
+
+        # Location is given from top left corner
+        plt.title('Location X = {:d}, Y = {:d}, T1 = {:g} ms'.format(xx, yy, T1[yy,xx]))
+        myfigfont = 'Helvetica'
+        
+        ax.set_title = get(axs, 'Title'), 'FontName', myfigfont, 'FontSize', 14);
+        set( get(axs, 'Xlabel'), 'FontName', myfigfont, 'FontSize', 14);
+        set( get(axs, 'Ylabel'), 'FontName', myfigfont, 'FontSize', 14);
+        set( axs, 'FontName', myfigfont, 'FontSize', 12);
+        set( axs, 'Units', 'inches');
+        """
+        plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
+        plt.show()
 
 plt.close('all')
 fname = 'TestSingleSlice'
@@ -279,22 +318,22 @@ for jj in range(nVoxAll):
     T1Est, bMagEst, aMagEst, res = rdNlsPr_v2( data[jj, :], nlsS)
     ll_T1[jj, :] = [T1Est, bMagEst, aMagEst, res]
 
-"""
 del jj, T1Est, bMagEst, aMagEst, res
-
 timeTaken = floor(time.time() - startTime)
 
 print('Processed {:d} voxels in {:d} seconds.'.format(nVoxAll, timeTaken))
 
+#mask = mask.reshape(mask.shape[0],mask.shape[1])
 dims = [*mask.shape, 4]
 im = np.zeros(mask.shape)
 
+T1 = np.zeros((*mask.shape, nbrOfFitParams))
 for ii in range(nbrOfFitParams):
     im[maskInds] = ll_T1[:,ii]
     T1[:, :, :, ii] = im
 
 # Going back from a numVoxels x 4 array to nbrow x nbcol x nbslice
-ll_T1 = T1;
+ll_T1 = T1
 
 # Store ll_T1 and mask in saveStr
 # For the complex data, ll_T1 has four parameters 
@@ -304,10 +343,10 @@ ll_T1 = T1;
 # (3) 'a' or 'ra' parameter
 # (4) residual from the fit
 
-np.savemat("{}ll_T1masknlsS.mat".format(saveStr))
+savemat("{}ll_T1masknlsS.mat".format(saveStr))
 
 # Check the fit
-TI = extra['tVec']
+TI = extra.tVec
 nbtp = 20
 timef = np.linspace(np.min(TI), np.max(TI), nbtp)
 
@@ -315,27 +354,19 @@ timef = np.linspace(np.min(TI), np.max(TI), nbtp)
 # to get problems
 time.sleep(1)
 
-zz = 0;
+zz = 0
 while True:
-    zz = input('Enter 1 to check the fit, 0 for no check --- ' 's')
-    zz = cast(str2double(zz), 'int16');
-    
-    if ( isinteger(zz) && zz >= 0 && zz <= nbslice ) 
-        break;
-    end
-    
-end
+    zz = int(input('Enter 1 to check the fit, 0 for no check --- '))    
+    if isinstance(zz, 'int') and zz >= 0 and zz <= nbslice: break
 
-sliceData = squeeze(dataOriginal(:,:,zz,:));
-datafit = zeros(nbrow, nbcol, nbtp);
+sliceData = np.squeeze(dataOriginal[:,:,zz,:])
+datafit = np.zeros((nbrow, nbcol, nbtp))
+np.seterr(divide='warn')
+for kk in range(nbtp):
+    datafit[:, :, kk] = abs(ll_T1[:, :, zz, 2] + np.multiply(ll_T1[:,:,zz,1],np.exp(np.divide((-1)*timef[kk],ll_T1[:,:,zz,0]))))
 
-for kk = 1:nbtp
-    datafit(:, :, kk) = abs(ll_T1(:, :, zz, 3) + ll_T1(:,:,zz,2).*exp(-timef(kk)./ll_T1(:,:,zz,1)));
-end
+print('Click on one point to check the fit. CTRL-click or right-click when done')
 
-disp('Click on one point to check the fit. CTRL-click or right-click when done')
+plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
 
-plotData_v2( real(sliceData), TI, real(datafit), ll_T1);
-
-close all
-"""
+plt.close('all')
