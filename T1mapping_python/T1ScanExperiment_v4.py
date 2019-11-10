@@ -207,44 +207,48 @@ def rdNlsPr_v2(data, nlsS):
     return (T1Est, bEst, aEst, res)
 
 def plotData_v2(data, time, datafit, T1):
+    # GUI yet implemented.
+    # Change xx, yy manually
+    # In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
+    print("Change xx, yy")
     fig123 = plt.figure(123) 
     plt.imshow(np.squeeze(data[:, :, 1]), cmap='gray', vmin = np.min(data[:, :, 1]), vmax = np.max(data[:, :, 1]))
     #movegui(fig123, 'northwest')
     button = 1
     
-    while button == 1:
-        fig, axs = plt.subplots()
+#    while button == 1:
+    fig, axs = plt.subplots()
 
-        xx = 100
-        yy = 150
-        #xx, yy, button = ginput(1);
-        yy = floor(yy)
-        xx = floor(xx)
-        
-        """
-        if (nargin == 2)
-            plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+'); 
-        end
-        if (nargin >= 3)
-            plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+', linspace(min(time),max(time),20), squeeze(datafit(floor(yy),floor(xx),:)), 'r');
-        end
-        if (nargin == 4)
-            # Location is given from top left corner
-            title(sprintf('Location X = %d, Y = %d, T1 = %g ms', cast(floor(yy),'int16'), cast(floor(xx),'int16'), T1(yy,xx)));
-        end
-
+    xx = 100
+    yy = 150
+    #xx, yy, button = ginput(1);
+    yy = floor(yy)
+    xx = floor(xx)
+    
+    """
+    if (nargin == 2)
+        plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+'); 
+    end
+    if (nargin >= 3)
+        plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+', linspace(min(time),max(time),20), squeeze(datafit(floor(yy),floor(xx),:)), 'r');
+    end
+    if (nargin == 4)
         # Location is given from top left corner
-        plt.title('Location X = {:d}, Y = {:d}, T1 = {:g} ms'.format(xx, yy, T1[yy,xx]))
-        myfigfont = 'Helvetica'
-        
-        ax.set_title = get(axs, 'Title'), 'FontName', myfigfont, 'FontSize', 14);
-        set( get(axs, 'Xlabel'), 'FontName', myfigfont, 'FontSize', 14);
-        set( get(axs, 'Ylabel'), 'FontName', myfigfont, 'FontSize', 14);
-        set( axs, 'FontName', myfigfont, 'FontSize', 12);
-        set( axs, 'Units', 'inches');
-        """
-        plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
-        plt.show()
+        title(sprintf('Location X = %d, Y = %d, T1 = %g ms', cast(floor(yy),'int16'), cast(floor(xx),'int16'), T1(yy,xx)));
+    end
+
+    # Location is given from top left corner
+    plt.title('Location X = {:d}, Y = {:d}, T1 = {:g} ms'.format(xx, yy, T1[yy,xx]))
+    myfigfont = 'Helvetica'
+    
+    ax.set_title = get(axs, 'Title'), 'FontName', myfigfont, 'FontSize', 14);
+    set( get(axs, 'Xlabel'), 'FontName', myfigfont, 'FontSize', 14);
+    set( get(axs, 'Ylabel'), 'FontName', myfigfont, 'FontSize', 14);
+    set( axs, 'FontName', myfigfont, 'FontSize', 12);
+    set( axs, 'Units', 'inches');
+    """
+    plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
+    plt.show()
 
 plt.close('all')
 fname = 'TestSingleSlice'
@@ -343,7 +347,8 @@ ll_T1 = T1
 # (3) 'a' or 'ra' parameter
 # (4) residual from the fit
 
-savemat("{}ll_T1masknlsS.mat".format(saveStr))
+mdict = {'ll_T1' :ll_T1, 'mask': mask, 'nlsS': nlsS}
+savemat("{}.mat".format(saveStr), mdict = mdict)
 
 # Check the fit
 TI = extra.tVec
@@ -356,14 +361,15 @@ time.sleep(1)
 
 zz = 0
 while True:
-    zz = int(input('Enter 1 to check the fit, 0 for no check --- '))    
-    if isinstance(zz, 'int') and zz >= 0 and zz <= nbslice: break
+    zz = 1
+    #zz = int(input('Enter 1 to check the fit, 0 for no check --- '))    
+    if isinstance(zz, int) and zz >= 0 and zz <= nbslice: break
 
-sliceData = np.squeeze(dataOriginal[:,:,zz,:])
+sliceData = np.squeeze(dataOriginal[:,:,zz-1,:])
 datafit = np.zeros((nbrow, nbcol, nbtp))
 np.seterr(divide='warn')
 for kk in range(nbtp):
-    datafit[:, :, kk] = abs(ll_T1[:, :, zz, 2] + np.multiply(ll_T1[:,:,zz,1],np.exp(np.divide((-1)*timef[kk],ll_T1[:,:,zz,0]))))
+    datafit[:, :, kk] = abs(ll_T1[:, :, 0, 2] + np.multiply(ll_T1[:,:,0,1],np.exp(np.divide((-1)*timef[kk],ll_T1[:,:,0,0]))))
 
 print('Click on one point to check the fit. CTRL-click or right-click when done')
 
