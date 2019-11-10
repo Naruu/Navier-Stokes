@@ -42,7 +42,7 @@ def finite_element1D_time(
     Refer to the formula at page 110 of 
     http://fab.cba.mit.edu/classes/864.14/text/fea.pdf
     Compute A, B.
-    Use 4th order Runge-Kutta method for time descretizaiton
+    Use 4th order Runge-Kutta method for time discretizaiton
     """
     # Numner of elements
     N_e = len(cells)
