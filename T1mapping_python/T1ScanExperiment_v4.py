@@ -116,7 +116,7 @@ def rdNlsPr_v2(data, nlsS):
     resTmp = np.zeros(2)
 
     # Make sure data vector is a column vector
-    data = data.reshape(-1, 1)
+    #data = data.reshape(-1, 1)
 
     # Find the min of the data
     minVal = np.min(data)
@@ -132,12 +132,12 @@ def rdNlsPr_v2(data, nlsS):
     for ii in range(2):
         theExp = nlsS['theExp'][order, :]
 
-        if ii == 1:
+        if ii == 0:
             # First, we set all elements up to and including
             # the smallest element to minus
             dataTmp = np.multiply(data,np.append((-1)*np.ones((minInd+1,1)), np.ones((nlsS['N'] - minInd-1,1))))
             
-        elif ii == 2:
+        elif ii == 1:
             # Second, we set all elements up to (not including)
             # the smallest element to minus
             dataTmp = np.multiply(data, np.append((-1)*np.ones((minInd,1)), np.ones((nlsS['N'] - minInd,1))))
@@ -148,7 +148,7 @@ def rdNlsPr_v2(data, nlsS):
 
         # Compute the vector of rho'*t for different rho,
         # where rho = exp(-TI/T1) and y = dataTmp
-        rhoTyVec = np.matmul(dataTmp.transpose(),theExp) - 1/nlsS['N']*np.sum(theExp,axis=0) * ySum
+        rhoTyVec = np.matmul(dataTmp, theExp) - 1/nlsS['N']*np.sum(theExp,axis=0) * ySum
 
         # rhoNormVec is a vector containing the norm-squared of rho over TI,
         # where rho = exp(-TI/T1), for different T1's.
@@ -195,17 +195,16 @@ def rdNlsPr_v2(data, nlsS):
 
         # Compute the residual
         modelValue = aEstTmp[ii] + bEstTmp[ii]*np.exp((-1)* tVec/T1EstTmp[ii])
-        resTmp[ii] = 1/sqrt(nlsS['N']) * norm(1 - modelValue./dataTmp)
-    """
+        resTmp[ii] = 1/sqrt(nlsS['N']) * np.linalg.norm(1 - np.divide(modelValue,dataTmp))
 
-    % Finally, we choose the point of sign shift as the point giving
-    % the best fit to the data, i.e. the one with the smallest residual   
-    [res, ind] = min(resTmp);
-    aEst = aEstTmp(ind);
-    bEst = bEstTmp(ind);
-    T1Est = T1EstTmp(ind);
-    """
-    return (T1Est, bMagEst, aMagEst, res)
+    # Finally, we choose the point of sign shift as the point giving
+    # the best fit to the data, i.e. the one with the smallest residual   
+    res = np.min(resTmp)
+    ind = np.argmin(resTmp)
+    aEst = aEstTmp[ind]
+    bEst = bEstTmp[ind]
+    T1Est = T1EstTmp[ind]
+    return (T1Est, bEst, aEst, res)
 
 
 plt.close('all')
@@ -275,14 +274,15 @@ del tmpVol_t, tmpData
 
 startTime = time.time()
 print('Processing {:d} voxels.\n'.format(nVoxAll))
-"""
+
 for jj in range(nVoxAll):
     T1Est, bMagEst, aMagEst, res = rdNlsPr_v2( data[jj, :], nlsS)
     ll_T1[jj, :] = [T1Est, bMagEst, aMagEst, res]
 
+"""
 del jj, T1Est, bMagEst, aMagEst, res
 
-timeTaken = floor(cputime - startTime)
+timeTaken = floor(time.time() - startTime)
 
 print('Processed {:d} voxels in {:d} seconds.'.format(nVoxAll, timeTaken))
 
@@ -290,36 +290,34 @@ dims = [*mask.shape, 4]
 im = np.zeros(mask.shape)
 
 for ii in range(nbrOfFitParams):
-    im[(maskInds] = ll_T1[(:,ii
+    im[maskInds] = ll_T1[:,ii]
     T1[:, :, :, ii] = im
-end
 
-% Going back from a numVoxels x 4 array to nbrow x nbcol x nbslice
+# Going back from a numVoxels x 4 array to nbrow x nbcol x nbslice
 ll_T1 = T1;
 
-% Store ll_T1 and mask in saveStr
-% For the complex data, ll_T1 has four parameters 
-% for each voxel, namely:
-% (1) T1 
-% (2) 'b' or 'rb' parameter 
-% (3) 'a' or 'ra' parameter
-% (4) residual from the fit
+# Store ll_T1 and mask in saveStr
+# For the complex data, ll_T1 has four parameters 
+# for each voxel, namely:
+# (1) T1 
+# (2) 'b' or 'rb' parameter 
+# (3) 'a' or 'ra' parameter
+# (4) residual from the fit
 
-save(saveStr, 'll_T1', 'mask', 'nlsS')
+np.savemat("{}ll_T1masknlsS.mat".format(saveStr))
 
-% Check the fit
-TI = extra.tVec;
-nbtp = 20;
-timef = linspace(min(TI), max(TI), nbtp);
+# Check the fit
+TI = extra['tVec']
+nbtp = 20
+timef = np.linspace(np.min(TI), np.max(TI), nbtp)
 
-% Inserting a short pause, otherwise some computers seem
-% to get problems
-pause(1);
+# Inserting a short pause, otherwise some computers seem
+# to get problems
+time.sleep(1)
 
 zz = 0;
-while(true)
-
-    zz = input(['Enter 1 to check the fit, 0 for no check --- '], 's');
+while True:
+    zz = input('Enter 1 to check the fit, 0 for no check --- ' 's')
     zz = cast(str2double(zz), 'int16');
     
     if ( isinteger(zz) && zz >= 0 && zz <= nbslice ) 
