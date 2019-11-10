@@ -206,7 +206,7 @@ def rdNlsPr_v2(data, nlsS):
     T1Est = T1EstTmp[ind]
     return (T1Est, bEst, aEst, res)
 
-def plotData_v2(data, time, datafit, T1):
+def plotData_v2(data, time, datafit, T1, xx,yy):
     # GUI yet implemented.
     # Change xx, yy manually
     # In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
@@ -216,11 +216,11 @@ def plotData_v2(data, time, datafit, T1):
     #movegui(fig123, 'northwest')
     button = 1
     
-#    while button == 1:
+    #while button == 1:
     fig, axs = plt.subplots()
 
-    xx = 100
-    yy = 150
+    #xx = 70
+    #yy = 100
     #xx, yy, button = ginput(1);
     yy = floor(yy)
     xx = floor(xx)
@@ -254,7 +254,6 @@ plt.close('all')
 fname = 'TestSingleSlice'
 method = 'RD-NLS-PR'
 saveStr = 'T1Fit'+method+'_'+fname
-
 
 matContents = loadmat(fname+'.mat',  struct_as_record=False, squeeze_me=True)
 extra = matContents['extra']
@@ -373,6 +372,10 @@ for kk in range(nbtp):
 
 print('Click on one point to check the fit. CTRL-click or right-click when done')
 
-plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
+# GUI yet implemented.
+# Change xx, yy manually
+# In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
+xx = 100; yy = 80
+plotData_v2( sliceData.real, TI, datafit.real, ll_T1, xx, yy)
 
 plt.close('all')
