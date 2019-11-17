@@ -1,5 +1,6 @@
 import time
 from math import floor, sqrt
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat, savemat
@@ -220,15 +221,13 @@ def plotData_v2(data, time, datafit, T1):
     #print("current x: {} y: {}".format(xx,yy))
     #print("Change xx, yy manually")
     def click(event):
-        global xx, yy
         xx, yy = event.xdata, event.ydata
-        print(xx,yy)
         root2 = tk.Tk()
         fig2 = plt.figure(figsize=(6,5))
-        lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}".format(floor(xx*100), floor(yy*100)))
+        lbl = tk.Label(root2, text="Location X = {:d}, Y = {:d}".format(floor(xx), floor(yy)))
         lbl.grid(row=0, column=0)
         plot2 = fig2.add_subplot(111)
-        plot2.plot([1,2,3],[2,3,2])
+        plot2(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
         canvas = FigureCanvasTkAgg(fig2, root2)
         canvas.get_tk_widget().grid(row=1, column=0)
         root2.mainloop()
@@ -239,8 +238,8 @@ def plotData_v2(data, time, datafit, T1):
     #lbl.grid(row=0, column=0)
     fig = plt.figure(figsize=(6,5))
     plot = fig.add_subplot(111)
-    plot.imshow([[1,2],[3,4]])
-    #plot.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
+    #plot.imshow([[1,2],[3,4]])
+    plot.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
     
     canvas = FigureCanvasTkAgg(fig, root)
     canvas.get_tk_widget().grid(row=1, column=0)
@@ -250,13 +249,6 @@ def plotData_v2(data, time, datafit, T1):
     #movegui(fig123, 'northwest')
     
     #while button == 1:
-    fig, axs = plt.subplots()
-
-    #xx = 70
-    #yy = 100
-    #xx, yy, button = ginput(1);
-    yy = floor(yy)
-    xx = floor(xx)
     
     """
     if (nargin == 2)
@@ -280,12 +272,12 @@ def plotData_v2(data, time, datafit, T1):
     set( axs, 'FontName', myfigfont, 'FontSize', 12);
     set( axs, 'Units', 'inches');
     """
-    plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
-    plt.show()
+    #plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
+    #plt.show()
 
 
 plt.close('all')
-fname = 'TestSingleSlice'
+fname = os.path.dirname(os.path.realpath(__file__)) +'\\TestSingleSlice'
 method = 'RD-NLS-PR'
 saveStr = 'T1Fit{}_{}'.format(method, fname)
 
@@ -411,6 +403,6 @@ print('Click on one point to check the fit. CTRL-click or right-click when done'
 # Change xx, yy manually
 # In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
 xx = 100; yy = 80
-plotData_v2( sliceData.real, TI, datafit.real, ll_T1, xx, yy)
+plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
 
 plt.close('all')
