@@ -215,73 +215,35 @@ def rdNlsPr_v2(data, nlsS):
     return (T1Est, bEst, aEst, res)
 
 def plotData_v2(data, time, datafit, T1):
-    # GUI yet implemented.
-    # Change xx, yy manually
-    # In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
-    #print("current x: {} y: {}".format(xx,yy))
-    #print("Change xx, yy manually")
     def click(event):
-        xx, yy = event.xdata, event.ydata
+        xx, yy = floor(event.xdata), floor(event.ydata)
         root2 = tk.Tk()
-        fig2 = plt.figure(figsize=(6,5))
-        lbl = tk.Label(root2, text="Location X = {:d}, Y = {:d}".format(floor(xx), floor(yy)))
+        fig2 = plt.figure(figsize=(5,5))
+        lbl = tk.Label(root2, text="Location X = {:d}, Y = {:d}".format(xx,yy))
         lbl.grid(row=0, column=0)
         plot2 = fig2.add_subplot(111)
-        plot2(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
+        plot2.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
         canvas = FigureCanvasTkAgg(fig2, root2)
         canvas.get_tk_widget().grid(row=1, column=0)
         root2.mainloop()
     
     root = tk.Tk()
-    #lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}, T1 = {:g} ms".format(floor(xx), floor(yy), T1[yy,xx]))
-    #lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}, T1 = {:g} ms".format(1,2,3))
-    #lbl.grid(row=0, column=0)
-    fig = plt.figure(figsize=(6,5))
+    fig = plt.figure(figsize=(5,5))
     plot = fig.add_subplot(111)
-    #plot.imshow([[1,2],[3,4]])
     plot.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
     
     canvas = FigureCanvasTkAgg(fig, root)
-    canvas.get_tk_widget().grid(row=1, column=0)
+    canvas.get_tk_widget().grid(row=0, column=0)
     fig.canvas.mpl_connect('button_press_event', click)
     root.mainloop()
-    #plt.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
-    #movegui(fig123, 'northwest')
-    
-    #while button == 1:
-    
-    """
-    if (nargin == 2)
-        plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+'); 
-    end
-    if (nargin >= 3)
-        plot(time, squeeze(data(floor(yy), floor(xx), :)), 'b+', linspace(min(time),max(time),20), squeeze(datafit(floor(yy),floor(xx),:)), 'r');
-    end
-    if (nargin == 4)
-        # Location is given from top left corner
-        title(sprintf('Location X = %d, Y = %d, T1 = %g ms', cast(floor(yy),'int16'), cast(floor(xx),'int16'), T1(yy,xx)));
-    end
-
-    # Location is given from top left corner
-    plt.title('Location X = {:d}, Y = {:d}, T1 = {:g} ms'.format(xx, yy, T1[yy,xx]))
-    myfigfont = 'Helvetica'
-    
-    ax.set_title = get(axs, 'Title'), 'FontName', myfigfont, 'FontSize', 14);
-    set( get(axs, 'Xlabel'), 'FontName', myfigfont, 'FontSize', 14);
-    set( get(axs, 'Ylabel'), 'FontName', myfigfont, 'FontSize', 14);
-    set( axs, 'FontName', myfigfont, 'FontSize', 12);
-    set( axs, 'Units', 'inches');
-    """
-    #plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
-    #plt.show()
 
 
 plt.close('all')
-fname = os.path.dirname(os.path.realpath(__file__)) +'\\TestSingleSlice'
+fname = 'TestSingleSlice'
 method = 'RD-NLS-PR'
 saveStr = 'T1Fit{}_{}'.format(method, fname)
 
-matContents = loadmat(fname+'.mat',  struct_as_record=False, squeeze_me=True)
+matContents = loadmat(os.path.dirname(os.path.realpath(__file__)) +'\\' + fname+'.mat',  struct_as_record=False, squeeze_me=True)
 extra = matContents['extra']
 data = matContents['data']
 
@@ -399,10 +361,6 @@ for kk in range(nbtp):
 
 print('Click on one point to check the fit. CTRL-click or right-click when done')
 
-# GUI yet implemented.
-# Change xx, yy manually
-# In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
-xx = 100; yy = 80
 plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
 
 plt.close('all')
