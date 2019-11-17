@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat, savemat
 from scipy.signal import medfilt2d
+import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Estimates T1 together with:
 #   RD-NLS: a and b parameters to fit the data to a + b*exp(-TI/T1)
@@ -13,13 +15,13 @@ from scipy.signal import medfilt2d
 #  (c) Board of Trustees, Leland Stanford Junior University
 
 # yck, 2019-11-07
-# translate matlab to pythoh. hll, 2019-11-09
-
+# matlab to pythoh. hll, 2019-11-09
 
 
 def getNLSStruct_v2(*args,**kwargs):
     """
     nlsS = getNLSStruct( extra, dispOn, zoom)
+    nlsS : (datatype) dictionary
 
     extra.tVec    : defining TIs 
                 (not called TIVec because it looks too much like T1Vec)
@@ -37,10 +39,14 @@ def getNLSStruct_v2(*args,**kwargs):
     """
     
     extra = args[0]
-    if kwargs.get('dispOn'): pass
-    else: dispOn = args[1]
-    if kwargs.get('zoom'): pass
-    else: zoom = args[1]
+    if len(args) > 1:
+        dispOn = args[1]
+    elif kwargs.get('dispOn'):
+        dispOn = kwargs['dispOn']
+    if len(args) > 2:
+        zoom = args[1]
+    if kwargs.get('zoom'):
+        zoom = kwargs[1]
     
     nlsS = dict()
     nlsS['tVec'] = extra.tVec[:]
@@ -61,7 +67,7 @@ def getNLSStruct_v2(*args,**kwargs):
         nlsS['nbrOfZoom'] = zoom
 
     if nlsS['nbrOfZoom'] > 1:
-        nlsS['T1LenZ'] = 21; #Length of the zoomed search
+        nlsS['T1LenZ'] = 21 #Length of the zoomed search
 
     # Set the help variables that can be precomputed:
     # alpha is 1/T1,
@@ -135,7 +141,7 @@ def rdNlsPr_v2(data, nlsS):
         if ii == 0:
             # First, we set all elements up to and including
             # the smallest element to minus
-            dataTmp = np.multiply(data,np.append((-1)*np.ones((minInd+1,1)), np.ones((nlsS['N'] - minInd-1,1))))
+            dataTmp = np.multiply(data,np.append((-1)*np.ones((minInd+1,1)), np.ones((nlsS['N'] - (minInd+1),1))))
             
         elif ii == 1:
             # Second, we set all elements up to (not including)
@@ -184,8 +190,9 @@ def rdNlsPr_v2(data, nlsS):
                 rhoTyVec = yExpSum - 1/nlsS['N']*np.sum(theExp,axis=0)*ySum
 
                 #Find the max of the maximizing criterion
-                tmp = np.max( np.divide(np.power(abs(rhoTyVec),2),rhoNormVec))
-                ind = np.argmax( np.divide(np.power(abs(rhoTyVec),2),rhoNormVec))
+                cal = np.divide(np.power(abs(rhoTyVec),2),rhoNormVec)
+                tmp = np.max(cal)
+                ind = np.argmax(cal)
 
 
         # The estimated parameters
@@ -206,15 +213,41 @@ def rdNlsPr_v2(data, nlsS):
     T1Est = T1EstTmp[ind]
     return (T1Est, bEst, aEst, res)
 
-def plotData_v2(data, time, datafit, T1, xx,yy):
+def plotData_v2(data, time, datafit, T1):
     # GUI yet implemented.
     # Change xx, yy manually
     # In original matlab file, x and y is mislabelled. x shows y coordinate, y shows x coordinate.
-    print("Change xx, yy")
-    fig123 = plt.figure(123) 
-    plt.imshow(np.squeeze(data[:, :, 1]), cmap='gray', vmin = np.min(data[:, :, 1]), vmax = np.max(data[:, :, 1]))
+    #print("current x: {} y: {}".format(xx,yy))
+    #print("Change xx, yy manually")
+    def click(event):
+        global xx, yy
+        xx, yy = event.xdata, event.ydata
+        print(xx,yy)
+        root2 = tk.Tk()
+        fig2 = plt.figure(figsize=(6,5))
+        lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}".format(floor(xx*100), floor(yy*100)))
+        lbl.grid(row=0, column=0)
+        plot2 = fig2.add_subplot(111)
+        plot2.plot([1,2,3],[2,3,2])
+        canvas = FigureCanvasTkAgg(fig2, root2)
+        canvas.get_tk_widget().grid(row=1, column=0)
+        root2.mainloop()
+    
+    root = tk.Tk()
+    #lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}, T1 = {:g} ms".format(floor(xx), floor(yy), T1[yy,xx]))
+    #lbl = tk.Label(root, text="Location X = {:d}, Y = {:d}, T1 = {:g} ms".format(1,2,3))
+    #lbl.grid(row=0, column=0)
+    fig = plt.figure(figsize=(6,5))
+    plot = fig.add_subplot(111)
+    plot.imshow([[1,2],[3,4]])
+    #plot.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
+    
+    canvas = FigureCanvasTkAgg(fig, root)
+    canvas.get_tk_widget().grid(row=1, column=0)
+    fig.canvas.mpl_connect('button_press_event', click)
+    root.mainloop()
+    #plt.imshow(np.squeeze(data[:, :, 0]), cmap='gray', vmin = np.min(data[:, :, 0]), vmax = np.max(data[:, :, 0]))
     #movegui(fig123, 'northwest')
-    button = 1
     
     #while button == 1:
     fig, axs = plt.subplots()
@@ -250,10 +283,11 @@ def plotData_v2(data, time, datafit, T1, xx,yy):
     plt.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
     plt.show()
 
+
 plt.close('all')
 fname = 'TestSingleSlice'
 method = 'RD-NLS-PR'
-saveStr = 'T1Fit'+method+'_'+fname
+saveStr = 'T1Fit{}_{}'.format(method, fname)
 
 matContents = loadmat(fname+'.mat',  struct_as_record=False, squeeze_me=True)
 extra = matContents['extra']
@@ -361,10 +395,11 @@ time.sleep(1)
 zz = 0
 while True:
     zz = 1
+    # input not allowed in vs code jupyter
     #zz = int(input('Enter 1 to check the fit, 0 for no check --- '))    
     if isinstance(zz, int) and zz >= 0 and zz <= nbslice: break
 
-sliceData = np.squeeze(dataOriginal[:,:,zz-1,:])
+sliceData = np.squeeze(dataOriginal[:,:,0,:])
 datafit = np.zeros((nbrow, nbcol, nbtp))
 np.seterr(divide='warn')
 for kk in range(nbtp):
