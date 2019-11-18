@@ -81,7 +81,7 @@ def getNLSStruct_v2(*args,**kwargs):
     tVec_t = tVec_t.astype('float64')
     # matlab vect is colum basen while numpy is just an array.
     nlsS['theExp'] = np.exp((-1)*tVec_t*alphaVec ) # datatype changed to matrix
-    nlsS['rhoNormVec'] = sum(np.power(nlsS['theExp'],2), 0) - 1/nlsS['N']*np.power(sum(nlsS['theExp'],0),2)
+    nlsS['rhoNormVec'] = np.conjugate(sum(np.power(nlsS['theExp'],2), 0)) - 1/nlsS['N']*np.power(np.conjugate(sum(nlsS['theExp'],0)),2)
     
     if dispOn:
         # Display the structure for inspection
@@ -155,7 +155,7 @@ def rdNlsPr_v2(data, nlsS):
 
         # Compute the vector of rho'*t for different rho,
         # where rho = exp(-TI/T1) and y = dataTmp
-        rhoTyVec = np.matmul(dataTmp, theExp) - 1/nlsS['N']*np.sum(theExp,axis=0) * ySum
+        rhoTyVec = np.matmul(dataTmp, theExp) - 1/nlsS['N']*np.conjugate(np.sum(theExp,axis=0)) * ySum
 
         # rhoNormVec is a vector containing the norm-squared of rho over TI,
         # where rho = exp(-TI/T1), for different T1's.
@@ -176,19 +176,19 @@ def rdNlsPr_v2(data, nlsS):
             
             for k in range(1,nbrOfZoom):
                 if ind > 0 and ind < len(T1Vec)-1:
-                    T1Vec = np.linspace(T1Vec[ind-1], T1Vec[ind+1], T1LenZ)
+                    T1Vec = np.conjugate(np.linspace(T1Vec[ind-1], T1Vec[ind+1], T1LenZ))
                 elif ind == 0:
-                    T1Vec = np.linspace(T1Vec[ind], T1Vec[ind+2], T1LenZ)
+                    T1Vec = np.conjugate(np.linspace(T1Vec[ind], T1Vec[ind+2], T1LenZ))
                 else:
-                    T1Vec = np.linspace(T1Vec[ind-2], T1Vec[ind], T1LenZ)
+                    T1Vec = np.conjugate(np.linspace(T1Vec[ind-2], T1Vec[ind], T1LenZ))
 
                 # Update the variables
                 alphaVec = 1/T1Vec
                 tVec = np.array(tVec)
-                theExp = np.exp((-1)*np.matmul(tVec.reshape(-1,1), alphaVec.reshape(1, -1)))
+                theExp = np.exp((-1)*np.matmul(tVec.reshape(-1,1), np.conjugate(alphaVec).reshape(1, -1)))
                 yExpSum = np.squeeze(np.matmul(dataTmp.reshape(1,-1), theExp))
-                rhoNormVec = np.sum(np.power(theExp,2), axis=0) - 1/nlsS['N']*np.power(np.sum(theExp,axis=0),2)
-                rhoTyVec = yExpSum - 1/nlsS['N']*np.sum(theExp,axis=0)*ySum
+                rhoNormVec = np.conjugate(np.sum(np.power(theExp,2), axis=0)) - 1/nlsS['N']*np.power(np.conjugate(np.sum(theExp,axis=0)),2)
+                rhoTyVec = yExpSum - 1/nlsS['N']*np.conjugate(np.sum(theExp,axis=0))*ySum
 
                 #Find the max of the maximizing criterion
                 cal = np.divide(np.power(abs(rhoTyVec),2),rhoNormVec)
@@ -219,7 +219,7 @@ def plotData_v2(data, time, datafit, T1):
         xx, yy = floor(event.xdata), floor(event.ydata)
         root2 = tk.Tk()
         fig2 = plt.figure(figsize=(5,5))
-        lbl = tk.Label(root2, text="Location X = {:d}, Y = {:d}".format(xx,yy))
+        lbl = tk.Label(root2, text="Location X = {:d}, Y = {:d}, T1 = {:g} ".format(xx,yy, T1[yy,xx,0,0]))
         lbl.grid(row=0, column=0)
         plot2 = fig2.add_subplot(111)
         plot2.plot(time, np.squeeze(data[yy,xx, :]), 'b+', np.linspace(np.min(time),np.max(time),20), np.squeeze(datafit[yy,xx,:]), 'r')
@@ -288,13 +288,13 @@ ll_T1 = np.zeros((nVoxAll, nbrOfFitParams))
 """
 for ii in range(data.shape[3]):
     tmpData = np.zeros((len(maskInds[0]),data.shape[3]))
-    tmpVol = data[(]:,:,:,ii]
+    tmpVol = data[:,:,:,ii]
     tmpData[ii,:] = tmpVol_t[maskInds_t]
 """
 tmpData = []
 maskInds_t = np.where(mask.transpose() > 0)
 for ii in range(data.shape[3]):
-    tmpVol_t = data[:,:,:,ii].transpose()
+    tmpVol_t = data[:,:,:,ii].H
     tmpData.append(np.array(tmpVol_t[maskInds_t][:]))
 tmpData = np.array(tmpData)
 tmpData = tmpData.transpose()
@@ -361,6 +361,6 @@ for kk in range(nbtp):
 
 print('Click on one point to check the fit. CTRL-click or right-click when done')
 
-plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
+#plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
 
 plt.close('all')
