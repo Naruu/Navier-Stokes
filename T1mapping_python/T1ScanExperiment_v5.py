@@ -294,7 +294,7 @@ for ii in range(data.shape[3]):
 tmpData = []
 maskInds_t = np.where(mask.transpose() > 0)
 for ii in range(data.shape[3]):
-    tmpVol_t = data[:,:,:,ii].H
+    tmpVol_t = np.conjugate(data[:,:,:,ii]).transpose()
     tmpData.append(np.array(tmpVol_t[maskInds_t][:]))
 tmpData = np.array(tmpData)
 tmpData = tmpData.transpose()
@@ -361,6 +361,6 @@ for kk in range(nbtp):
 
 print('Click on one point to check the fit. CTRL-click or right-click when done')
 
-#plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
+plotData_v2( sliceData.real, TI, datafit.real, ll_T1)
 
 plt.close('all')

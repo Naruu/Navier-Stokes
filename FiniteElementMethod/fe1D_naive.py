@@ -117,6 +117,12 @@ def Lagrange_polynomial(x, i, points):
             p *= (x - points[k])/(points[i] - points[k])
     return p
 
+def Legendre_polynomial(x, i, points):
+    if i == 1:
+        return x
+    if i == 2:
+        return 1/2*(3*x*x-1)
+
 def basis(d, symbolic=False):
     """
     Return all local basis function phi and their derivatives,
@@ -140,6 +146,8 @@ def basis(d, symbolic=False):
     else:
         nodes = np.linspace(-1, 1, d+1)
 
+        #phi_sym[0] = [Legendre_polynomial(X , r, nodes) 
+        #                for r in range(d+1)]
         phi_sym[0] = [Lagrange_polynomial(X, r, nodes)
                       for r in range(d+1)]
         phi_sym[1] = [sym.simplify(sym.diff(phi_sym[0][r], X)*2/h)

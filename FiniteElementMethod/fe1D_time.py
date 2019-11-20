@@ -89,11 +89,12 @@ def finite_element1D_time(
             detJ = h/2
             dX = detJ*w
             x = affine_mapping(X, Omega_e)
-        
+            print(x)
             # Compute A_i,j(element matrix), B_i,j
             for r in range(n):
                 for s in range(n):
                     A_e[r,s] += ilhs(e, phi, r, s, X, x, h)*dX
+                    print(A_e)
 
         # Assemble
         # Map elementwise matrix to global matrix

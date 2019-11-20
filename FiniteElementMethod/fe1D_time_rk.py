@@ -111,7 +111,7 @@ def finite_element1D_time(
     # check p.110 of http://fab.cba.mit.edu/classes/864.14/text/fea.pdf for theory
     A_inv = np.linalg.inv(A)
     M = np.matmul(A_inv,B)
-    M = -M
+    M = (-1)*M
     print("M", file = log)
     print(M, file = log)
     
@@ -120,9 +120,9 @@ def finite_element1D_time(
     for t in tqdm(range(nt)):
         K1 = K2 = K3 = K4 = np.zeros(N_n)
         K1 = np.matmul(M, c_n)
-        K2 = np.matmul(M, c_n + K1*h/2)
-        K3 = np.matmul(M, c_n + K2*h/2)
-        K4 = np.matmul(M, c_n + K3*h)
+        K2 = np.matmul(M, c_n + K1*dt/2)
+        K3 = np.matmul(M, c_n + K2*dt/2)
+        K4 = np.matmul(M, c_n + K3*dt)
         
         print("K1", file = log)
         print(K1, file = log)
