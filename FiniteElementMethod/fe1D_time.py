@@ -6,8 +6,12 @@ import sympy as sym
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+from imp import reload
+import numint, fe1D_naive
+reload(numint)
+reload(fe1D_naive)
 from fe1D_naive import affine_mapping, basis, mesh_uniform, u_glob
-from numint import GaussLegendre
+from numint import GaussLegendre, NewtonCotes
 
 global log
 # print out result to file
@@ -71,10 +75,10 @@ def finite_element1D_time(
     phi = basis(d)
     n = d+1  # No of dofs per element
 
-
-    # Integration method : GaussLegendre
+    # Integration method
     # points: x coordinate, weights: weight at each point
     points, weights = GaussLegendre(d+1)
+    # points, weights = NewtonCotes(d+1)
 
     # Integrate over the reference cell
     for e in range(N_e):
@@ -89,12 +93,10 @@ def finite_element1D_time(
             detJ = h/2
             dX = detJ*w
             x = affine_mapping(X, Omega_e)
-            print(x)
             # Compute A_i,j(element matrix), B_i,j
             for r in range(n):
                 for s in range(n):
                     A_e[r,s] += ilhs(e, phi, r, s, X, x, h)*dX
-                    print(A_e)
 
         # Assemble
         # Map elementwise matrix to global matrix
@@ -102,10 +104,14 @@ def finite_element1D_time(
             for s in range(n):
                 A[dof_map[e][r], dof_map[e][s]] += A_e[r,s]
         
+        """
         # periodic boundary condition
         A[-1,:] = 0
         A[-1,-1] = -1
         A[-1, 0] = 1
+        """
+        plt.figure('A matrix')
+        plt.imshow(A, cmap='jet')  
     
 
     for t in tqdm(range(nt)):
@@ -142,7 +148,7 @@ def finite_element1D_time(
             print(b, file = log)
 
         # boundary condition
-        b[0] = 0
+        #b[0] = 0
 
         c = np.linalg.solve(A, b)
         # sparse matrix version
@@ -179,10 +185,13 @@ def main():
     # total range: [0, L]
     # d : order of polynomial
     # N_e : number of elements
-
-    L = 1; d = 1
-    N_e = 20; dx = L/N_e
-    nt = 1; dt = 0.001
+    
+    L = 2  # total range: [0, L]
+    d = 2  # d : order of polynomial
+    N_e = 60  # N_e : number of elements
+    dx = L / N_e  # spatial interval of an element
+    nt = 200  # how many time points to compute?
+    dt = 0.0005  # time resolution
 
     # vetices: index of vertices
     # cells : a list of lists that contains vertex indexes in each cell
@@ -194,13 +203,38 @@ def main():
     # Number of vertices in an element
     N_n = (np.array(dof_map).max() + 1)
     
-    # initial value of c
-    c0 = [0] * N_n 
-    i4 = int(0.4 * N_n)
-    i6 = int(0.6 * N_n)
-    c0[i4:i6+1] = [1] * (i6 - i4+1)
+    # trapezoid
+    c0 = [0] * N_n
+    x1 = int(0.3*N_n)
+    x2 = int(0.4*N_n)
+    x3 = int(0.5*N_n)
+    x4 = int(0.6*N_n)
+
+    x_i = np.arange(0, N_n, 1)
+
+    c0[0:x1] = np.zeros(x1)
+    x_ = (x_i - x1) / (x2 - x1)
+    c0[x1:x2] = x_[x1:x2]
+    c0[x2:x3] = np.ones((x3-x2))
+    x_ = (x4 - x_i) / (x4 - x3)
+    c0[x3:x4] = x_[x3:x4]
+    c0[x4:] = np.zeros((N_n-x4))
 
     essbc = {}
+
+    
+    phi = basis(d)
+    plt.figure('phi function')
+    x2 = np.linspace(-1, 1, 20)
+    color_list = ['b--', 'r-.', 'g-', 'y-']
+
+    for jj in range(d+1):
+        try:
+            plt.plot(x2, phi[0][jj](x2), color_list[jj])
+        except ValueError:
+            print("phi[0][{}] is constant. phi[0][{}] = {}".format(jj,jj,phi[0][jj](1)))
+    plt.show()
+    plt.close()
     
     cs, A, b = finite_element1D_time(
         vertices, cells, dof_map, dt, nt, essbc,
@@ -212,12 +246,12 @@ def main():
     xtp = [L/6*x for x in range(7)]
     xlabel = ["{:.1}".format(L/6*x) for x in range(7)]
 
+    x0 = np.linspace(0, L, N_n)
     plt.figure()
-    for cc in range(len(cs)):
+    for cc in range(0, len(cs), 20):
         x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
-        plt.plot(x, u)
-        plt.xlim(0,L)
-        plt.xticks(xtp,xlabel)
+        plt.plot(x0, c0, 'ro')
+        plt.plot(x, u, 'b-')
         plt.show()
 
 if __name__ == '__main__':

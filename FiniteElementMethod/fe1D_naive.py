@@ -2,6 +2,7 @@ import numpy as np
 import sympy as sym
 import sys
 import time
+from math import cos, pi
 
 from numint import GaussLegendre
 from scipy.sparse import dok_matrix, linalg
@@ -117,11 +118,13 @@ def Lagrange_polynomial(x, i, points):
             p *= (x - points[k])/(points[i] - points[k])
     return p
 
-def Legendre_polynomial(x, i, points):
-    if i == 1:
-        return x
-    if i == 2:
-        return 1/2*(3*x*x-1)
+def Legendre_polynomial(x, points):
+    legendre = [0] * len(points)
+    legendre[0] = 1
+    legendre[1] = x
+    for j in range(1,len(points)-1):
+        legendre[j+1] = ((2*j+1)*x*legendre[j] - j*legendre[j-1])/(j+1)
+    return legendre
 
 def basis(d, symbolic=False):
     """
@@ -144,24 +147,37 @@ def basis(d, symbolic=False):
         phi_sym[0] = [1]
         phi_sym[1] = [0]
     else:
+        # uniform
         nodes = np.linspace(-1, 1, d+1)
+        
+        # chebyshev_nodes
+        #nodes = Chebyshev_nodes(-1, 1, d)
 
-        #phi_sym[0] = [Legendre_polynomial(X , r, nodes) 
-        #                for r in range(d+1)]
-        phi_sym[0] = [Lagrange_polynomial(X, r, nodes)
-                      for r in range(d+1)]
+        phi_sym[0] = Legendre_polynomial(X , nodes)
+        #phi_sym[0] = [Lagrange_polynomial(X, r, nodes)
+        #              for r in range(d+1)]
         phi_sym[1] = [sym.simplify(sym.diff(phi_sym[0][r], X)*2/h)
                       for r in range(d+1)]
+    
+        if isinstance(phi_sym[0][0], int):
+            phi_sym[0][0] = X-X+phi_sym[0][0]
+
     # Transform to Python functions
     phi_num[0] = [sym.lambdify([X], phi_sym[0][r])
                   for r in range(d+1)]
     phi_num[1] = [sym.lambdify([X, h], phi_sym[1][r])
                   for r in range(d+1)]
+
     return phi_sym if symbolic else phi_num
 
 
 def Chebyshev_nodes(a, b, N):
-    return [(0.5*(a+b) + 0.5*(b-a)*cos(float(2*i+1)/(2*N+1))*pi) for i in range(N+1)]
+    """Return N+1 Chebyshev nodes (for interpolation) on [a, b]."""
+    from math import cos, pi
+    half = 0.5
+    nodes = [0.5*(a+b) + 0.5*(b-a)*cos(float(2*i+1)/(2*(N+1))*pi)
+             for i in range(N+1)]
+    return nodes
 
 def mesh_uniform(N_e, d, Omega):
     """
@@ -243,26 +259,27 @@ def brhs(e, phi, r, X, x, h):
 
 
 
-vertices, cells, dof_map = mesh_uniform(
-N_e=2, d=d, Omega=[0,L])
+if __name__ == '__main__':
+    vertices, cells, dof_map = mesh_uniform(
+    N_e=2, d=d, Omega=[0,L])
 
 
-essbc = {}
-essbc[dof_map[-1][-1]] = D
-c, A, b = finite_element1D_naive(
-    vertices, cells, dof_map, essbc,
-    ilhs=ilhs, irhs=irhs, blhs=blhs, brhs=brhs)
+    essbc = {}
+    essbc[dof_map[-1][-1]] = D
+    c, A, b = finite_element1D_naive(
+        vertices, cells, dof_map, essbc,
+        ilhs=ilhs, irhs=irhs, blhs=blhs, brhs=brhs)
 
-"""
-For plotting
-"""
+    """
+    For plotting
+    """
 
-import matplotlib.pyplot as plt
-x,u, nodes = u_glob(c, cells, vertices, dof_map)
-plt.plot(x, u)
+    import matplotlib.pyplot as plt
+    x,u, nodes = u_glob(c, cells, vertices, dof_map)
+    plt.plot(x, u)
 
-#exaxt solution
-#change u_exact as the model
-u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
-u_e = u_exact(x)
-plt.plot(x, u_e)
+    #exaxt solution
+    #change u_exact as the model
+    u_exact = lambda x: D + C*(x-L) + (1./6)*(L**3 - x**3)
+    u_e = u_exact(x)
+    plt.plot(x, u_e)

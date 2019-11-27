@@ -34,6 +34,36 @@ def GaussLegendre(num_points):
             weights[n//2-i] = w[n][i]
     return points, weights
 
+
+def NewtonCotes(num_points):
+    """Return points and weights for Newton-Cotes rules on [-1,1]."""
+    n = num_points
+    points  = np.zeros(n)
+    weights = np.zeros(n)
+    if n == 1:
+        # Midpoint rule
+        points[0] = 0
+        weights[0] = 2
+    elif n == 2:
+        # Trapezoidal rule
+        points[:] = [-1, 1]
+        weights[:] = [1, 1]
+    elif n == 3:
+        # Simpson's rule
+        points[:] = [-1, 0, 1]
+        weights[:] = [1./3, 4./3, 1/3.]
+    elif n == 4:
+        # Simpson's 3/8 rule
+        points[:] = [-1, -1./3, 1./3, 1]
+        weights[:] = [1./4, 3./4, 3/4., 1./4]
+    elif n == 5:
+        # Boole's rule
+        points[:] = [-1, -0.5, 0, 0.5, 1]
+        weights[:] = 1./45*np.array([7, 32, 12, 32, 7], float)
+    else:
+        raise ValueError('Newton-Cotes formula with %d>5 not implemented' % n)
+    return points, weights
+
 x = {}
 w = {}
 x[2] = [0.5773502691896257645091488]
