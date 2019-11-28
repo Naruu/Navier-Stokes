@@ -2,6 +2,7 @@ import time
 import sys
 import numpy as np
 import sympy as sym
+from math import exp, sin
 #from scipy.sparse import dok_matrix, linalg
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -104,14 +105,14 @@ def finite_element1D_time(
             for s in range(n):
                 A[dof_map[e][r], dof_map[e][s]] += A_e[r,s]
         
-        """
+        
         # periodic boundary condition
-        A[-1,:] = 0
-        A[-1,-1] = -1
-        A[-1, 0] = 1
-        """
+        #A[-1,:] = 0
+        #A[-1,-1] = -1
+        #A[-1, 0] = 1
         plt.figure('A matrix')
         plt.imshow(A, cmap='jet')  
+        print(A, file=log)
     
 
     for t in tqdm(range(nt)):
@@ -130,7 +131,7 @@ def finite_element1D_time(
                 dX = detJ*w
                 x = affine_mapping(X, Omega_e)
             
-                print("X: {}, w: {}, x: {}".format(X, w, x), file=log)
+                #print("X: {}, w: {}, x: {}".format(X, w, x), file=log)
                 # Compute b_i(element vector)
                 for r in range(n):
                     for s in range(n):
@@ -144,13 +145,14 @@ def finite_element1D_time(
             for r in range(n):
                 b[dof_map[e][r]] += b_e[r]
 
-            print("b", file = log)
-            print(b, file = log)
+            #print("b", file = log)
+            #print(b, file = log)
 
         # boundary condition
         #b[0] = 0
 
         c = np.linalg.solve(A, b)
+        
         # sparse matrix version
         #c = linalg.spsolve(A.tocsr(), b, use_umfpack=True)
         
@@ -185,12 +187,13 @@ def main():
     # total range: [0, L]
     # d : order of polynomial
     # N_e : number of elements
-    
+
+
     L = 2  # total range: [0, L]
     d = 2  # d : order of polynomial
-    N_e = 60  # N_e : number of elements
+    N_e = 40  # N_e : number of elements
     dx = L / N_e  # spatial interval of an element
-    nt = 200  # how many time points to compute?
+    nt = 400  # how many time points to compute?
     dt = 0.0005  # time resolution
 
     # vetices: index of vertices
@@ -203,6 +206,10 @@ def main():
     # Number of vertices in an element
     N_n = (np.array(dof_map).max() + 1)
     
+    """
+    x0 = np.linspace(0,2,N_n)
+    c0 = [exp((-10)*(x-1)**2) for x in x0]
+    """
     # trapezoid
     c0 = [0] * N_n
     x1 = int(0.3*N_n)
@@ -219,10 +226,8 @@ def main():
     x_ = (x4 - x_i) / (x4 - x3)
     c0[x3:x4] = x_[x3:x4]
     c0[x4:] = np.zeros((N_n-x4))
-
-    essbc = {}
-
     
+    essbc = {}
     phi = basis(d)
     plt.figure('phi function')
     x2 = np.linspace(-1, 1, 20)
@@ -249,10 +254,13 @@ def main():
     x0 = np.linspace(0, L, N_n)
     plt.figure()
     for cc in range(0, len(cs), 20):
-        x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
+        #x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
         plt.plot(x0, c0, 'ro')
-        plt.plot(x, u, 'b-')
+        #plt.plot(x, u, 'b-')
+        plt.plot(x0, cs[cc], 'g+')
         plt.show()
+    return x, cs
 
 if __name__ == '__main__':
-    main()
+    x, cs = main()
+    log.close()

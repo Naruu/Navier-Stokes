@@ -1,6 +1,7 @@
 import time
 import sys
 import numpy as np
+from math import exp
 import sympy as sym
 #from scipy.sparse import dok_matrix, linalg
 from tqdm import tqdm
@@ -115,10 +116,16 @@ def finite_element1D_time(
     print("M", file = log)
     print(M, file = log)
     
-
     # Compute by 4th order Runge-Kutta
     for t in tqdm(range(nt)):
         K1 = K2 = K3 = K4 = np.zeros(N_n)
+
+        x1, lh = Lh(c_n, cells, vertices, dof_map, phi)
+        x2, k1 = Lh(lh, cells, vertices, dof_map, phi)
+        K1 = [c_n[i] + dt * lh[i] for i in range(N_n)]
+        c = [1/2 * c_n[i] + 1/2*(c_n[i] + dt* lh[i] + dt * k1[i]) for i in range(N_n)]
+
+        """
         K1 = np.matmul(M, c_n)
         K2 = np.matmul(M, c_n + K1*dt/2)
         K3 = np.matmul(M, c_n + K2*dt/2)
@@ -135,7 +142,8 @@ def finite_element1D_time(
         print("K4", file = log)
         print(K4, file = log)
     
-        c = [c_n[r] + (K1[r]+2*K2[r]+2*K3[r]+K4[r])*h/6 for r in range(len(c_n))]
+        c = [c_n[r] + (K1[r]+2*K2[r]+2*K3[r]+K4[r])*dt/6 for r in range(len(c_n))]
+        """
         # periodic boundary condition
         c[0] = c[-1]
 
@@ -169,9 +177,13 @@ def main():
     # total range: [0, L]
     # d : order of polynomial
     # N_e : number of elements
-    L = 1; d = 1
-    N_e = 20; dx = L/N_e
-    nt = 1; dt = 0.001
+    L = 2  # total range: [0, L]
+    d = 2  # d : order of polynomial
+    N_e = 60  # N_e : number of elements
+    dx = L / N_e  # spatial interval of an element
+    nt = 200  # how many time points to compute?
+    dt = 0.005  # time resolution
+
 
     # vetices: index of vertices
     # cells : a list of lists that contains vertex indexes in each cell
@@ -183,14 +195,30 @@ def main():
     # Number of vertices in an element
     N_n = (np.array(dof_map).max() + 1)
 
-    # initial value of c
-    c0 = [0] * N_n 
-    i4 = int(0.4 * N_n)
-    i6 = int(0.6 * N_n)
-    c0[i4:i6+1] = [1] * (i6 - i4+1)
-
-    essbc = {}
     
+    x0 = np.linspace(0,2,N_n)
+    c0 = [exp((-10)*(x-1)**2) for x in x0]
+
+    """
+    # initial value of c
+     # trapezoid
+    c0 = [0] * N_n
+    x1 = int(0.3*N_n)
+    x2 = int(0.4*N_n)
+    x3 = int(0.5*N_n)
+    x4 = int(0.6*N_n)
+
+    x_i = np.arange(0, N_n, 1)
+
+    c0[0:x1] = np.zeros(x1)
+    x_ = (x_i - x1) / (x2 - x1)
+    c0[x1:x2] = x_[x1:x2]
+    c0[x2:x3] = np.ones((x3-x2))
+    x_ = (x4 - x_i) / (x4 - x3)
+    c0[x3:x4] = x_[x3:x4]
+    c0[x4:] = np.zeros((N_n-x4))
+    """
+    essbc = {}
     cs, A, b = finite_element1D_time(
         vertices, cells, dof_map, dt, nt, essbc,
         ilhs=ilhs, irhs=irhs, c0=c0, blhs=blhs, brhs=brhs, verbose=False)
@@ -201,13 +229,57 @@ def main():
     xtp = [L/6*x for x in range(7)]
     xlabel = ["{:.1}".format(L/6*x) for x in range(7)]
 
+    x0 = np.linspace(0, L, N_n)
     plt.figure()
-    for cc in range(len(cs)):
+    for cc in range(0, len(cs), 20):
         x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
-        plt.plot(x, u)
-        plt.xlim(0,L)
-        plt.xticks(xtp,xlabel)
+        plt.plot(x0, c0, 'ro')
+        plt.plot(x, u, 'b-')
         plt.show()
+
+
+def Lh(c_n, cells, vertices, dof_map, phi):
+    """
+    Not yet implemented.
+    It will compute Lh which is -u_x
+    currently it returns u_h(1) of second order Runge-kutta
+    """
+    u_patches = [0] * len(c_n)
+    x_patches = np.linspace(0,2,len(c_n))
+    for e in range(len(cells)):
+        Omega_e = (vertices[cells[e][0]], vertices[cells[e][-1]])
+        d = len(dof_map[e]) - 1
+        h = vertices[cells[e][-1]]-vertices[cells[e][0]]
+        #X = np.linspace(-1, 1, resolution_per_element)
+        X = np.linspace(-1,1,d+1)
+        
+        for r in range(d+1):
+            i = dof_map[e][r] # global dof number
+            u_patches[dof_map[e][0]:dof_map[e][0]+d+1] += c_n[i]*phi[1][r](X,h)
+        print("i", i)
+        u_patches[i] /= 2
+    print(u_patches)
+    u_patches[-1] = 2 * u_patches[-1]
+    print(u_patches)
+    u_patches = [(-1)* u for u in u_patches]
+            #print("middle", r, c_n[i]*phi[1][r](X,h))
+        #print("u_cell edge: {}, {}".format(u_cell[0],u_cell[-1]))
+        #u_patches.append(u_cell)
+    # Compute global coordinates of local nodes,
+    # assuming all dofs corresponds to values at nodes
+    return x_patches, u_patches
+
+"""
+x, u = Lh(c0, cells, vertices, dof_map, phi)
+plt.plot(x, u)
+print(x)
+print(u)
+plt.show()
+c_n = c0
+i = 0
+r = 0
+e = 0
+"""
 
 if __name__ == '__main__':
     main()

@@ -153,9 +153,9 @@ def basis(d, symbolic=False):
         # chebyshev_nodes
         #nodes = Chebyshev_nodes(-1, 1, d)
 
-        phi_sym[0] = Legendre_polynomial(X , nodes)
-        #phi_sym[0] = [Lagrange_polynomial(X, r, nodes)
-        #              for r in range(d+1)]
+        #phi_sym[0] = Legendre_polynomial(X , nodes)
+        phi_sym[0] = [Lagrange_polynomial(X, r, nodes)
+                      for r in range(d+1)]
         phi_sym[1] = [sym.simplify(sym.diff(phi_sym[0][r], X)*2/h)
                       for r in range(d+1)]
     
@@ -237,6 +237,41 @@ def u_glob(U, cells, vertices, dof_map, resolution_per_element=5):
     u = np.concatenate(u_patches)
     return x, u, nodes
 
+
+def u_glob2(U, cells, vertices, dof_map, resolution_per_element=5):
+    """
+    Compute (x, y) coordinates of a curve y = u(x), where u is a
+    finite element function: u(x) = sum_i of U_i*phi_i(x).
+    (The solution of the linear system is in U.)
+    Method: Run through each element and compute curve coordinates
+    over the element.
+    This function works with cells, vertices, and dof_map.
+    """
+    x_patches = []
+    u_patches = []
+    nodes = {}  # node coordinates (use dict to avoid multiple values)
+    for e in range(len(cells)):
+        Omega_e = (vertices[cells[e][0]], vertices[cells[e][-1]])
+        d = len(dof_map[e]) - 1
+        phi = basis(d)
+        X = np.linspace(-1, 1, resolution_per_element)
+        x = affine_mapping(X, Omega_e)
+        x_patches.append(x)
+        u_cell = 0  # u(x) over this cell
+        for r in range(d+1):
+            i = dof_map[e][r]  # global dof number
+            u_cell += U[i]*phi[1][r](X)
+        u_patches.append(u_cell)
+        # Compute global coordinates of local nodes,
+        # assuming all dofs corresponds to values at nodes
+        X = np.linspace(-1, 1, d+1)
+        x = affine_mapping(X, Omega_e)
+        for r in range(d+1):
+            nodes[dof_map[e][r]] = x[r]
+    nodes = np.array([nodes[i] for i in sorted(nodes)])
+    x = np.concatenate(x_patches)
+    u = np.concatenate(u_patches)
+    return x, u, nodes
 
 """
 HOW TO
