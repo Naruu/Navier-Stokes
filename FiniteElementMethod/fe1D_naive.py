@@ -100,6 +100,9 @@ def finite_element1D_naive(
 
 
 def affine_mapping(X, Omega_e):
+    """
+    Map X to x(change of coordinate)
+    """
     x_L, x_R = Omega_e
     return 0.5*(x_L + x_R) + 0.5*(x_R - x_L)*X
 
@@ -119,6 +122,9 @@ def Lagrange_polynomial(x, i, points):
     return p
 
 def Legendre_polynomial(x, points):
+    """
+    Return a list of Legendre Polynomials
+    """
     legendre = [0] * len(points)
     legendre[0] = 1
     legendre[1] = x
@@ -172,7 +178,11 @@ def basis(d, symbolic=False):
 
 
 def Chebyshev_nodes(a, b, N):
-    """Return N+1 Chebyshev nodes (for interpolation) on [a, b]."""
+    """
+    Return N+1 Chebyshev nodes (for interpolation) on [a, b].
+    It is meaningful on high order polynomial
+    Else We can just partition into smaller elements and use low order polynomila
+    """
     from math import cos, pi
     half = 0.5
     nodes = [0.5*(a+b) + 0.5*(b-a)*cos(float(2*i+1)/(2*(N+1))*pi)
@@ -238,40 +248,6 @@ def u_glob(U, cells, vertices, dof_map, resolution_per_element=5):
     return x, u, nodes
 
 
-def u_glob2(U, cells, vertices, dof_map, resolution_per_element=5):
-    """
-    Compute (x, y) coordinates of a curve y = u(x), where u is a
-    finite element function: u(x) = sum_i of U_i*phi_i(x).
-    (The solution of the linear system is in U.)
-    Method: Run through each element and compute curve coordinates
-    over the element.
-    This function works with cells, vertices, and dof_map.
-    """
-    x_patches = []
-    u_patches = []
-    nodes = {}  # node coordinates (use dict to avoid multiple values)
-    for e in range(len(cells)):
-        Omega_e = (vertices[cells[e][0]], vertices[cells[e][-1]])
-        d = len(dof_map[e]) - 1
-        phi = basis(d)
-        X = np.linspace(-1, 1, resolution_per_element)
-        x = affine_mapping(X, Omega_e)
-        x_patches.append(x)
-        u_cell = 0  # u(x) over this cell
-        for r in range(d+1):
-            i = dof_map[e][r]  # global dof number
-            u_cell += U[i]*phi[1][r](X)
-        u_patches.append(u_cell)
-        # Compute global coordinates of local nodes,
-        # assuming all dofs corresponds to values at nodes
-        X = np.linspace(-1, 1, d+1)
-        x = affine_mapping(X, Omega_e)
-        for r in range(d+1):
-            nodes[dof_map[e][r]] = x[r]
-    nodes = np.array([nodes[i] for i in sorted(nodes)])
-    x = np.concatenate(x_patches)
-    u = np.concatenate(u_patches)
-    return x, u, nodes
 
 """
 HOW TO

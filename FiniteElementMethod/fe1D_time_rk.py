@@ -47,7 +47,7 @@ def finite_element1D_time(
     """
     # Numner of elements
     N_e = len(cells)
-    # Number of vertices in an element
+    # Number of vertices in an element 
     N_n = np.array(dof_map).max() + 1
 
     # matrix for global computation
@@ -58,6 +58,7 @@ def finite_element1D_time(
 
     # Container to hold c
     cs = []
+    lhs = []
     
     # initializing c
     c_n = c0
@@ -121,10 +122,13 @@ def finite_element1D_time(
         K1 = K2 = K3 = K4 = np.zeros(N_n)
 
         x1, lh = Lh(c_n, cells, vertices, dof_map, phi)
+        time.sleep(0.1)
         x2, k1 = Lh(lh, cells, vertices, dof_map, phi)
+        lhs.append(lh)
+        time.sleep(0.1)
         K1 = [c_n[i] + dt * lh[i] for i in range(N_n)]
         c = [1/2 * c_n[i] + 1/2*(c_n[i] + dt* lh[i] + dt * k1[i]) for i in range(N_n)]
-
+        time.sleep(0.1)
         """
         K1 = np.matmul(M, c_n)
         K2 = np.matmul(M, c_n + K1*dt/2)
@@ -151,10 +155,10 @@ def finite_element1D_time(
         c_n = c
         cs.append(c_n)
 
-        print("c", file = log)
-        print(c, file = log)    
+        #print("c", file = log)
+        #print(c, file = log)    
         
-    return cs, A, b
+    return cs, A, b, lhs
 
 # left hand side : matix A_ij
 def ilhs(e, phi, r, s, X, x, h):
@@ -178,10 +182,10 @@ def main():
     # d : order of polynomial
     # N_e : number of elements
     L = 2  # total range: [0, L]
-    d = 2  # d : order of polynomial
+    d = 1  # d : order of polynomial
     N_e = 60  # N_e : number of elements
     dx = L / N_e  # spatial interval of an element
-    nt = 200  # how many time points to compute?
+    nt = 20  # how many time points to compute?
     dt = 0.005  # time resolution
 
 
@@ -219,7 +223,7 @@ def main():
     c0[x4:] = np.zeros((N_n-x4))
     """
     essbc = {}
-    cs, A, b = finite_element1D_time(
+    cs, A, b, lhs = finite_element1D_time(
         vertices, cells, dof_map, dt, nt, essbc,
         ilhs=ilhs, irhs=irhs, c0=c0, blhs=blhs, brhs=brhs, verbose=False)
 
@@ -235,6 +239,7 @@ def main():
         x,u, n_ = u_glob(cs[cc], cells, vertices, dof_map)
         plt.plot(x0, c0, 'ro')
         plt.plot(x, u, 'b-')
+        plt.plot(x0, lhs[cc], 'g+')
         plt.show()
 
 
@@ -253,14 +258,19 @@ def Lh(c_n, cells, vertices, dof_map, phi):
         #X = np.linspace(-1, 1, resolution_per_element)
         X = np.linspace(-1,1,d+1)
         
-        for r in range(d+1):
-            i = dof_map[e][r] # global dof number
-            u_patches[dof_map[e][0]:dof_map[e][0]+d+1] += c_n[i]*phi[1][r](X,h)
-        print("i", i)
+        if d == 1:
+            for r in range(d+1):
+                i = dof_map[e][r] # global dof number
+                u_patches[dof_map[e][0]:dof_map[e][0]+d+1] += [c_n[i]*phi[1][r](X,h), c_n[i]*phi[1][r](X,h)]
+        else:
+            for r in range(d+1):
+                i = dof_map[e][r] # global dof number
+                u_patches[dof_map[e][0]:dof_map[e][0]+d+1] += c_n[i]*phi[1][r](X,h)
+        #print("i", i)
         u_patches[i] /= 2
-    print(u_patches)
+    #print(u_patches)
     u_patches[-1] = 2 * u_patches[-1]
-    print(u_patches)
+    #print(u_patches)
     u_patches = [(-1)* u for u in u_patches]
             #print("middle", r, c_n[i]*phi[1][r](X,h))
         #print("u_cell edge: {}, {}".format(u_cell[0],u_cell[-1]))
